@@ -1,110 +1,50 @@
 import { useState, useRef, useEffect } from "react";
+import axios from "axios";
 
-const DOCTORS = [
-  "Dr. Sarah Mitchell",
-  "Dr. James Okafor",
-  "Dr. Priya Nair",
-  "Dr. Carlos Reyes",
-  "Dr. Amina Yusuf",
-];
+const API = "http://localhost:5000/api";
 
-const MONTHS = [
-  "January","February","March","April","May","June",
-  "July","August","September","October","November","December",
-];
-const HOURS = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
-const MINUTES = ["00", "15", "30", "45"];
-const AMPM = ["AM", "PM"];
-const currentYear = new Date().getFullYear();
-const YEARS = Array.from({ length: 5 }, (_, i) => String(currentYear + i));
+const MONTHS = ["January","February","March","April","May","June",
+  "July","August","September","October","November","December"];
+const HOURS   = Array.from({ length: 12 }, (_, i) => String(i + 1).padStart(2, "0"));
+const MINUTES = ["00","15","30","45"];
+const AMPM    = ["AM","PM"];
+const DAYS    = ["Su","Mo","Tu","We","Th","Fr","Sa"];
 
-const genId = () => "MR" + Math.floor(100000 + Math.random() * 900000);
+function getDaysInMonth(y: number, m: number) { return new Date(y, m+1, 0).getDate(); }
+function getFirstDay(y: number, m: number)    { return new Date(y, m, 1).getDay(); }
 
-const selectClass =
-  "w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-slate-800 text-sm font-medium " +
-  "appearance-none focus:outline-none focus:ring-2 focus:ring-indigo-400 transition-all cursor-pointer";
-
-const DAYS_OF_WEEK = ["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"];
-
-function getDaysInMonth(year: number, month: number) {
-  return new Date(year, month + 1, 0).getDate();
-}
-function getFirstDayOfMonth(year: number, month: number) {
-  return new Date(year, month, 1).getDay();
-}
-
-// ── Calendar Picker ────────────────────────────────────────────────────────────
-function CalendarPicker({
-  value,
-  onChange,
-}: {
-  value: Date | null;
-  onChange: (d: Date) => void;
-}) {
+// ── Mini Calendar ─────────────────────────────────────────────────────────────
+function Cal({ value, onChange }: { value: Date | null; onChange: (d: Date) => void }) {
   const today = new Date();
-  const [viewYear, setViewYear] = useState(value ? value.getFullYear() : today.getFullYear());
-  const [viewMonth, setViewMonth] = useState(value ? value.getMonth() : today.getMonth());
-
-  const daysInMonth = getDaysInMonth(viewYear, viewMonth);
-  const firstDay = getFirstDayOfMonth(viewYear, viewMonth);
-  const cells: (number | null)[] = [
-    ...Array(firstDay).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
-  ];
-
-  const prevMonth = () => {
-    if (viewMonth === 0) { setViewMonth(11); setViewYear(y => y - 1); }
-    else setViewMonth(m => m - 1);
-  };
-  const nextMonth = () => {
-    if (viewMonth === 11) { setViewMonth(0); setViewYear(y => y + 1); }
-    else setViewMonth(m => m + 1);
-  };
-
-  const isSelected = (day: number) =>
-    value && value.getDate() === day && value.getMonth() === viewMonth && value.getFullYear() === viewYear;
-
-  const isToday = (day: number) =>
-    today.getDate() === day && today.getMonth() === viewMonth && today.getFullYear() === viewYear;
-
+  const [vy, setVy] = useState(value?.getFullYear()  ?? today.getFullYear());
+  const [vm, setVm] = useState(value?.getMonth()     ?? today.getMonth());
+  const days = getDaysInMonth(vy, vm);
+  const first = getFirstDay(vy, vm);
+  const cells = [...Array(first).fill(null), ...Array.from({length:days},(_,i)=>i+1)];
+  const prev  = () => vm===0 ? (setVm(11),setVy(y=>y-1)) : setVm(m=>m-1);
+  const next  = () => vm===11? (setVm(0),setVy(y=>y+1)) : setVm(m=>m+1);
+  const isSel = (d:number) => value?.getDate()===d && value?.getMonth()===vm && value?.getFullYear()===vy;
+  const isTod = (d:number) => today.getDate()===d && today.getMonth()===vm && today.getFullYear()===vy;
   return (
-    <div className="bg-white rounded-2xl shadow-xl border border-slate-200 p-4 w-72 z-50">
-      {/* Month / Year nav */}
+    <div className="absolute z-50 top-full mt-1 left-0 bg-white rounded-2xl shadow-xl border border-slate-200 p-4 w-72">
       <div className="flex items-center justify-between mb-3">
-        <button onClick={prevMonth} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-all">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="15 18 9 12 15 6"/></svg>
-        </button>
-        <span className="text-sm font-bold text-slate-800">{MONTHS[viewMonth]} {viewYear}</span>
-        <button onClick={nextMonth} className="w-7 h-7 rounded-lg hover:bg-slate-100 flex items-center justify-center text-slate-500 transition-all">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><polyline points="9 18 15 12 9 6"/></svg>
-        </button>
+        <button onClick={prev} className="w-7 h-7 hover:bg-slate-100 rounded-lg flex items-center justify-center text-lg">‹</button>
+        <span className="text-sm font-bold">{MONTHS[vm]} {vy}</span>
+        <button onClick={next} className="w-7 h-7 hover:bg-slate-100 rounded-lg flex items-center justify-center text-lg">›</button>
       </div>
-
-      {/* Day headers */}
       <div className="grid grid-cols-7 mb-1">
-        {DAYS_OF_WEEK.map(d => (
-          <div key={d} className="text-center text-[10px] font-bold text-slate-400 py-1">{d}</div>
-        ))}
+        {DAYS.map(d=><div key={d} className="text-center text-[10px] font-bold text-slate-400 py-1">{d}</div>)}
       </div>
-
-      {/* Day cells */}
       <div className="grid grid-cols-7 gap-y-0.5">
-        {cells.map((day, i) => (
+        {cells.map((day,i)=>(
           <div key={i} className="flex items-center justify-center">
             {day ? (
-              <button
-                onClick={() => onChange(new Date(viewYear, viewMonth, day))}
+              <button onClick={()=>onChange(new Date(vy,vm,day))}
                 className={`w-8 h-8 rounded-full text-xs font-semibold transition-all
-                  ${isSelected(day)
-                    ? "bg-indigo-600 text-white shadow-md shadow-indigo-200"
-                    : isToday(day)
-                    ? "border-2 border-indigo-400 text-indigo-600"
-                    : "hover:bg-indigo-50 text-slate-700"
-                  }`}
-              >
+                  ${isSel(day)?"bg-indigo-600 text-white":isTod(day)?"border-2 border-indigo-400 text-indigo-600":"hover:bg-indigo-50 text-slate-700"}`}>
                 {day}
               </button>
-            ) : null}
+            ):null}
           </div>
         ))}
       </div>
@@ -112,169 +52,121 @@ function CalendarPicker({
   );
 }
 
-// ── Date Input with popup ──────────────────────────────────────────────────────
-function DatePickerField({
-  value,
-  onChange,
-  error,
-}: {
-  value: Date | null;
-  onChange: (d: Date) => void;
-  error?: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState({ top: 0, left: 0, width: 0 });
-  const ref = useRef<HTMLDivElement>(null);
-  const btnRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
-
-  const handleOpen = () => {
-    if (btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + window.scrollY + 6, left: rect.left + window.scrollX, width: rect.width });
-    }
-    setOpen(o => !o);
-  };
-
-  const display = value
-    ? `${String(value.getDate()).padStart(2, "0")} ${MONTHS[value.getMonth()]} ${value.getFullYear()}`
-    : "Select date";
-
-  return (
-    <div ref={ref} className="relative">
-      <button
-        ref={btnRef}
-        type="button"
-        onClick={handleOpen}
-        className={`w-full px-4 py-3 rounded-xl border text-sm font-medium text-left flex items-center justify-between transition-all
-          ${open ? "border-indigo-400 ring-2 ring-indigo-400" : "border-slate-200"}
-          ${value ? "text-slate-800" : "text-slate-400"} bg-white`}
-      >
-        <span>{display}</span>
-        <svg className="w-4 h-4 text-slate-400" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-        </svg>
-      </button>
-      {error && <p className="text-rose-500 text-xs mt-1">{error}</p>}
-      {open && (
-        <div
-          style={{ position: "fixed", top: pos.top, left: pos.left, zIndex: 9999 }}
-        >
-          <CalendarPicker
-            value={value}
-            onChange={(d) => { onChange(d); setOpen(false); }}
-          />
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ── Drop field (time) ──────────────────────────────────────────────────────────
-function DropField({ value, onChange, options, placeholder }: {
-  value: string; onChange: (v: string) => void; options: string[]; placeholder: string;
-}) {
-  return (
-    <div className="relative flex-1">
-      <select value={value} onChange={(e) => onChange(e.target.value)} className={selectClass}>
-        <option value="">{placeholder}</option>
-        {options.map((o) => <option key={o} value={o}>{o}</option>)}
-      </select>
-      <span className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 text-slate-400">
-        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </span>
-    </div>
-  );
-}
-
-// ── Main ───────────────────────────────────────────────────────────────────────
-interface Form {
-  bookingId: string;
-  doctorName: string;
-  selectedDate: Date | null;
-  hour: string;
-  minute: string;
-  ampm: string;
-}
+const genId = () => "MR" + Math.floor(100000 + Math.random() * 900000);
 
 export default function Newbook() {
-  const now = new Date();
-  const initForm: Form = {
-    bookingId: genId(),
-    doctorName: "",
-    selectedDate: now,
-    hour: "09",
-    minute: "00",
-    ampm: "AM",
-  };
+  const [doctors,  setDoctors]  = useState<any[]>([]);
+  const [counters, setCounters] = useState<any[]>([]);
+  const [loadingDropdowns, setLoadingDropdowns] = useState(true);
 
-  const [form, setForm] = useState<Form>(initForm);
-  const [errors, setErrors] = useState<Partial<Record<string, string>>>({});
+  const [form, setForm] = useState({
+    bookingId:   genId(),
+    doctorId:    "",
+    doctorName:  "",
+    counterId:   "",
+    selectedDate: new Date() as Date | null,
+    hour: "09", minute: "00", ampm: "AM",
+    notes: "",
+    zone: "1", centerid: "101",
+  });
+  const [errors,    setErrors]    = useState<Record<string,string>>({});
   const [submitted, setSubmitted] = useState(false);
+  const [saving,    setSaving]    = useState(false);
+  const [apiError,  setApiError]  = useState("");
+  const [showCal,   setShowCal]   = useState(false);
+  const calRef = useRef<HTMLDivElement>(null);
 
-  const set = (key: keyof Form) => (val: string) => {
-    setForm((f) => ({ ...f, [key]: val }));
-    setErrors((e) => ({ ...e, [key]: "" }));
-  };
+  // Load doctors + counters
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const [dRes, cRes] = await Promise.all([
+          axios.get(`${API}/doctors`),
+          axios.get(`${API}/clinic/counters`),
+        ]);
+        setDoctors(dRes.data.data   || []);
+        setCounters(cRes.data.data  || []);
+      } catch (err) { console.error("Dropdown load failed:", err); }
+      finally { setLoadingDropdowns(false); }
+    };
+    load();
+  }, []);
+
+  // Close calendar on outside click
+  useEffect(() => {
+    const h = (e: MouseEvent) => {
+      if (calRef.current && !calRef.current.contains(e.target as Node)) setShowCal(false);
+    };
+    document.addEventListener("mousedown", h);
+    return () => document.removeEventListener("mousedown", h);
+  }, []);
 
   const validate = () => {
-    const next: Record<string, string> = {};
-    if (!form.doctorName) next.doctorName = "Required";
-    if (!form.selectedDate) next.selectedDate = "Select a date";
-    if (!form.hour || !form.minute) next.hour = "Select a time";
-    setErrors(next);
-    return Object.keys(next).length === 0;
+    const e: Record<string,string> = {};
+    if (!form.doctorId)     e.doctorId     = "Select a doctor";
+    if (!form.selectedDate) e.selectedDate = "Select a date";
+    setErrors(e);
+    return Object.keys(e).length === 0;
   };
 
-  const handleSubmit = () => { if (validate()) setSubmitted(true); };
+  const handleSubmit = async () => {
+    if (!validate()) return;
+    try {
+      setSaving(true); setApiError("");
+      // Convert date + time to a ticket number format
+      const d = form.selectedDate!;
+      const dateStr = `${d.getDate().toString().padStart(2,"0")}${(d.getMonth()+1).toString().padStart(2,"0")}`;
+      const ticketNo = `${form.bookingId.replace("MR","")}`;
+
+      await axios.post(`${API}/appointments`, {
+        TICKETNUMBER: form.bookingId,
+        COUNTERID:    form.counterId || "1",
+        SERVICEID:    form.doctorId,
+        ZONE:         form.zone,
+        TYPE:         "A",           // A = Appointment type
+        CENTERID:     form.centerid,
+      });
+      setSubmitted(true);
+    } catch (err: any) {
+      setApiError(err?.response?.data?.message || "Booking failed. Check backend.");
+    } finally { setSaving(false); }
+  };
+
   const handleReset = () => {
-    setForm({ ...initForm, bookingId: genId() });
-    setErrors({});
-    setSubmitted(false);
+    setForm({ bookingId: genId(), doctorId:"", doctorName:"", counterId:"", selectedDate:new Date(), hour:"09", minute:"00", ampm:"AM", notes:"", zone:"1", centerid:"101" });
+    setErrors({}); setSubmitted(false); setApiError("");
   };
 
   const displayDate = form.selectedDate
-    ? `${String(form.selectedDate.getDate()).padStart(2, "0")} ${MONTHS[form.selectedDate.getMonth()]} ${form.selectedDate.getFullYear()}`
-    : "";
-  const displayTime = `${form.hour}:${form.minute} ${form.ampm}`;
+    ? `${form.selectedDate.getDate().toString().padStart(2,"0")} ${MONTHS[form.selectedDate.getMonth()]} ${form.selectedDate.getFullYear()}`
+    : "Select date";
 
+  // ── Success ───────────────────────────────────────────────────────────────
   if (submitted) {
     return (
-      <div className="min-h-screen bg-slate-50 p-6">
-        <div className="w-full bg-white rounded-2xl shadow-lg overflow-hidden">
-          <div className="h-1.5 bg-gradient-to-r from-indigo-500 to-violet-500" />
+      <div className="min-h-screen bg-slate-50 p-6 flex items-center justify-center">
+        <div className="w-full max-w-md bg-white rounded-2xl shadow-lg overflow-hidden">
+          <div className="h-1.5 bg-gradient-to-r from-indigo-500 to-violet-500"/>
           <div className="p-8 flex flex-col items-center text-center">
-            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4">
-              <svg className="w-8 h-8 text-emerald-500" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-              </svg>
-            </div>
-            <h2 className="text-xl font-bold text-slate-800 mb-1">Room Booked!</h2>
-            <p className="text-sm text-slate-400 mb-6">Your meeting has been scheduled.</p>
+            <div className="w-16 h-16 rounded-full bg-emerald-100 flex items-center justify-center mb-4 text-3xl">✅</div>
+            <h2 className="text-xl font-bold text-slate-800 mb-1">Booking Confirmed!</h2>
+            <p className="text-sm text-slate-400 mb-6">Saved to database successfully.</p>
             <div className="w-full bg-slate-50 rounded-xl p-5 text-left space-y-3 border border-slate-200 mb-6">
               {[
-                ["Booking ID", form.bookingId],
-                ["Doctor", form.doctorName],
-                ["Date", displayDate],
-                ["Time", displayTime],
-              ].map(([label, val]) => (
-                <div key={label} className="flex justify-between text-sm">
-                  <span className="text-slate-400 font-medium">{label}</span>
-                  <span className="text-slate-800 font-semibold">{val}</span>
+                ["Booking ID",  form.bookingId],
+                ["Doctor",      form.doctorName],
+                ["Date",        displayDate],
+                ["Time",        `${form.hour}:${form.minute} ${form.ampm}`],
+                ...(form.notes ? [["Notes", form.notes]] : []),
+              ].map(([l,v]) => (
+                <div key={l} className="flex justify-between text-sm">
+                  <span className="text-slate-400 font-medium">{l}</span>
+                  <span className="text-slate-800 font-semibold">{v}</span>
                 </div>
               ))}
             </div>
             <button onClick={handleReset}
-              className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 active:scale-95 transition-all">
+              className="w-full py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700">
               Book Another
             </button>
           </div>
@@ -283,79 +175,113 @@ export default function Newbook() {
     );
   }
 
+  // ── Form ──────────────────────────────────────────────────────────────────
   return (
     <div className="min-h-screen bg-slate-100 p-6">
-      <div className="w-full bg-white rounded-2xl shadow-lg">
+      <div className="w-full max-w-md mx-auto bg-white rounded-2xl shadow-lg">
 
         {/* Header */}
         <div className="px-7 pt-7 pb-5 border-b border-slate-100 flex items-center gap-3">
-          <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center shadow shadow-indigo-200">
-            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-            </svg>
-          </div>
+          <div className="w-9 h-9 rounded-lg bg-indigo-600 flex items-center justify-center text-white text-lg">📅</div>
           <div>
             <h1 className="text-base font-bold text-slate-800">Meeting Room Booking</h1>
-            <p className="text-xs text-slate-400">Schedule a doctor consultation</p>
+            <p className="text-xs text-slate-400">Schedule a doctor consultation — saves to database</p>
           </div>
         </div>
 
-        {/* Form */}
-        <div className="px-7 py-6 space-y-5">
+        <div className="px-7 py-6 space-y-4">
+
+          {apiError && (
+            <div className="bg-red-50 border border-red-200 text-red-700 rounded-xl p-3 text-sm">
+              ❌ {apiError}
+            </div>
+          )}
 
           {/* Doctor */}
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
               Doctor <span className="text-rose-500">*</span>
             </label>
-            <div className="relative">
-              <select value={form.doctorName} onChange={(e) => set("doctorName")(e.target.value)} className={selectClass}>
-                <option value="">Select doctor</option>
-                {DOCTORS.map((d) => <option key={d}>{d}</option>)}
-              </select>
-              <span className="pointer-events-none absolute right-4 top-1/2 -translate-y-1/2 text-slate-400">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <polyline points="6 9 12 15 18 9" />
-                </svg>
-              </span>
-            </div>
-            {errors.doctorName && <p className="text-rose-500 text-xs mt-1">{errors.doctorName}</p>}
+            <select
+              value={form.doctorId}
+              disabled={loadingDropdowns}
+              onChange={e => {
+                const sel = doctors.find(d => String(d.SERVICEID) === e.target.value);
+                setForm(f => ({...f, doctorId: e.target.value, doctorName: sel?.SERVICE_E || ""}));
+                setErrors(er => ({...er, doctorId:""}));
+              }}
+              className="w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              <option value="">{loadingDropdowns ? "Loading..." : "-- Select Doctor --"}</option>
+              {doctors.map(d => <option key={d.SERVICEID} value={d.SERVICEID}>{d.SERVICE_E}</option>)}
+            </select>
+            {errors.doctorId && <p className="text-rose-500 text-xs mt-1">{errors.doctorId}</p>}
           </div>
 
-          {/* Date — Calendar Picker */}
+          {/* Counter */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Counter</label>
+            <select
+              value={form.counterId}
+              onChange={e => setForm(f => ({...f, counterId: e.target.value}))}
+              className="w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400">
+              <option value="">-- Select Counter (optional) --</option>
+              {counters.map(c => <option key={c.COUNTERID} value={c.COUNTERID}>Counter {c.COUNTERE}</option>)}
+            </select>
+          </div>
+
+          {/* Date */}
           <div>
             <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
               Date <span className="text-rose-500">*</span>
             </label>
-            <DatePickerField
-              value={form.selectedDate}
-              onChange={(d) => { setForm(f => ({ ...f, selectedDate: d })); setErrors(e => ({ ...e, selectedDate: "" })); }}
-              error={errors.selectedDate}
-            />
+            <div ref={calRef} className="relative">
+              <button type="button" onClick={() => setShowCal(o => !o)}
+                className={`w-full px-4 py-3 rounded-xl border text-sm font-medium text-left flex items-center justify-between transition-all
+                  ${showCal ? "border-indigo-400 ring-2 ring-indigo-400" : "border-slate-200"}
+                  ${form.selectedDate ? "text-slate-800" : "text-slate-400"} bg-white`}>
+                <span>{displayDate}</span>
+                <span>📅</span>
+              </button>
+              {errors.selectedDate && <p className="text-rose-500 text-xs mt-1">{errors.selectedDate}</p>}
+              {showCal && (
+                <Cal value={form.selectedDate} onChange={d => { setForm(f=>({...f, selectedDate:d})); setShowCal(false); setErrors(e=>({...e,selectedDate:""})); }} />
+              )}
+            </div>
           </div>
 
-          {/* Time: Hour / Minute / AM-PM */}
+          {/* Time */}
           <div>
-            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">
-              Time <span className="text-rose-500">*</span>
-            </label>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Time</label>
             <div className="flex gap-2">
-              <DropField value={form.hour}   onChange={set("hour")}   options={HOURS}   placeholder="Hour" />
-              <DropField value={form.minute} onChange={set("minute")} options={MINUTES} placeholder="Min" />
-              <DropField value={form.ampm}   onChange={set("ampm")}   options={AMPM}    placeholder="AM/PM" />
+              {[{k:"hour",opts:HOURS,ph:"Hour"},{k:"minute",opts:MINUTES,ph:"Min"},{k:"ampm",opts:AMPM,ph:"AM/PM"}].map(({k,opts,ph}) => (
+                <div key={k} className="relative flex-1">
+                  <select value={(form as any)[k]} onChange={e => setForm(f => ({...f, [k]: e.target.value}))}
+                    className="w-full px-3 py-3 rounded-xl border border-slate-200 bg-white text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-400">
+                    {opts.map(o => <option key={o} value={o}>{o}</option>)}
+                  </select>
+                </div>
+              ))}
             </div>
-            {errors.hour && <p className="text-rose-500 text-xs mt-1">{errors.hour}</p>}
+          </div>
+
+          {/* Notes */}
+          <div>
+            <label className="block text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Notes</label>
+            <textarea value={form.notes} onChange={e => setForm(f => ({...f, notes: e.target.value}))}
+              placeholder="Any additional notes..."
+              rows={2}
+              className="w-full px-4 py-3 rounded-xl border border-slate-200 bg-white text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400 resize-none"/>
           </div>
 
           {/* Actions */}
           <div className="flex gap-3 pt-1">
             <button type="button" onClick={handleReset}
-              className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50 active:scale-95 transition-all">
+              className="flex-1 py-3 rounded-xl border border-slate-200 text-slate-600 text-sm font-semibold hover:bg-slate-50">
               Cancel
             </button>
-            <button type="button" onClick={handleSubmit}
-              className="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 active:scale-95 transition-all shadow-md shadow-indigo-200">
-              Book Room
+            <button type="button" onClick={handleSubmit} disabled={saving}
+              className="flex-1 py-3 rounded-xl bg-indigo-600 text-white text-sm font-semibold hover:bg-indigo-700 disabled:opacity-60 flex items-center justify-center gap-2">
+              {saving ? <><span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"/>Saving...</> : "📅 Book Room"}
             </button>
           </div>
 

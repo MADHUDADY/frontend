@@ -1,148 +1,201 @@
-import React, { useState } from "react";
-import { Pencil, Trash2, Eye } from "lucide-react";
-import { useNavigate } from "react-router-dom";
+import React, { useState, useEffect } from "react";
+import { Pencil, RefreshCw } from "lucide-react";
+import { clinicAPI } from "../../services/api";
 
 const ViewClinic = () => {
-  const navigate = useNavigate();
+  const [clinic,   setClinic]  = useState<any | null>(null);
+  const [loading,  setLoading] = useState(true);
+  const [error,    setError]   = useState("");
+  const [editing,  setEditing] = useState(false);
+  const [saving,   setSaving]  = useState(false);
+  const [editData, setEditData] = useState<any>({});
+  const [saved,    setSaved]   = useState(false);
 
-  const [clinics, setClinics] = useState([
-    {
-      id: 1,
-      name: "City Care Clinic",
-      location: "Dubai",
-      email: "citycare@gmail.com",
-      mobile: "+971 565656565",
-      incharge: "Dr. Ahmed",
-      license: "LIC-2025-001",
-    },
-    {
-      id: 2,
-      name: "Sunrise Medical Center",
-      location: "Abu Dhabi",
-      email: "sunrise@gmail.com",
-      mobile: "+971 545454545",
-      incharge: "Dr. Sarah",
-      license: "LIC-2025-002",
-    },
-    {
-      id: 3,
-      name: "Health Plus Clinic",
-      location: "Sharjah",
-      email: "healthplus@gmail.com",
-      mobile: "+971 523456789",
-      incharge: "Dr. John",
-      license: "LIC-2025-003",
-    },
-  ]);
+  useEffect(() => { fetchClinic(); }, []);
 
-  // Delete Function
-  const handleDelete = (id: number) => {
-    const confirmDelete = window.confirm(
-      "Are you sure you want to delete this clinic?"
-    );
-    if (confirmDelete) {
-      setClinics(clinics.filter((clinic) => clinic.id !== id));
+  const fetchClinic = async () => {
+    try {
+      setLoading(true);
+      setError("");
+      const res = await clinicAPI.getDetails();
+      setClinic(res.data.data);
+      setEditData(res.data.data);
+    } catch (err: any) {
+      setError(`Failed to load clinic: ${err?.response?.data?.message || err.message}`);
+    } finally {
+      setLoading(false);
     }
   };
+
+  const handleSave = async () => {
+    try {
+      setSaving(true);
+      await clinicAPI.updateDetails(clinic.ID, {
+        COMPANYNAME:     editData.COMPANYNAME,
+        COMPANYADDRESS:  editData.COMPANYADDRESS,
+        COMPANYADDRESS2: editData.COMPANYADDRESS2,   // ← NEW
+        KIOSKMESSAGE1:   editData.KIOSKMESSAGE1,
+        KIOSKMESSAGE2:   editData.KIOSKMESSAGE2,
+      });
+      setClinic({ ...clinic, ...editData });
+      setEditing(false);
+      setSaved(true);
+      setTimeout(() => setSaved(false), 3000);
+    } catch (err: any) {
+      alert("Save failed: " + (err?.response?.data?.message || err.message));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const inputCls = "w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-indigo-400 text-sm";
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
 
       {/* Header */}
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-xl font-semibold">Clinic List</h1>
-
-        <button
-          onClick={() => navigate("/add-clinic")}
-          className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700"
-        >
-          + Add Clinic
+        <h1 className="text-xl font-semibold">Clinic Details</h1>
+        <button onClick={fetchClinic}
+          className="flex items-center gap-2 px-3 py-2 border rounded-lg text-gray-600 hover:bg-gray-100 text-sm">
+          <RefreshCw size={14} /> Refresh
         </button>
       </div>
 
-      {/* Search */}
-      <div className="mb-4">
-        <input
-          type="text"
-          placeholder="Search Clinic..."
-          className="px-4 py-2 border rounded-lg w-72"
-        />
-      </div>
+      {loading && (
+        <div className="bg-white rounded-xl p-16 text-center text-gray-500">
+          ⏳ Loading clinic from database...
+        </div>
+      )}
 
-      {/* Table */}
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <table className="w-full text-left">
-          <thead className="bg-gray-100 text-gray-700 text-sm">
-            <tr>
-              <th className="p-4 text-center">Actions</th>
-              <th className="p-4">Clinic Name</th>
-              <th className="p-4">Location</th>
-              <th className="p-4">Email</th>
-              <th className="p-4">Mobile</th>
-              <th className="p-4">Clinic Incharge</th>
-              <th className="p-4">License No</th>
-            </tr>
-          </thead>
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 p-4 rounded-xl mb-4 text-sm">
+          ❌ {error}
+          <button onClick={fetchClinic} className="ml-3 bg-red-600 text-white px-3 py-1 rounded-lg text-xs">
+            Retry
+          </button>
+        </div>
+      )}
 
-          <tbody>
-            {clinics.map((clinic) => (
-              <tr
-                key={clinic.id}
-                className="border-t hover:bg-gray-50 text-sm"
-              >
-                  <td className="p-4">
-                  <div className="flex justify-center gap-2">
+      {saved && (
+        <div className="bg-green-50 border border-green-200 text-green-700 p-3 rounded-xl mb-4 text-sm text-center">
+          ✅ Clinic details updated successfully!
+        </div>
+      )}
 
-                    {/* View Button */}
-                    <button
-                      onClick={() =>
-                        navigate(`/view-clinic/${clinic.id}`)
-                      }
-                      className="p-2 rounded-lg bg-green-500 text-white hover:bg-green-400"
-                    >
-                      <Eye size={15} />
-                    </button>
+      {!loading && !error && clinic && (
+        <div className="bg-white rounded-xl shadow-sm overflow-hidden">
 
-                    {/* Edit Button */}
-                    <button
-                      onClick={() =>
-                        navigate(`/edit-clinic/${clinic.id}`)
-                      }
-                      className="p-2 rounded-lg bg-blue-500 text-white hover:bg-blue-400"
-                    >
-                      <Pencil size={15} />
-                    </button>
+          {/* Banner */}
+          <div className="bg-gradient-to-r from-indigo-600 to-blue-500 px-6 py-5 text-white">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold">{clinic.COMPANYNAME}</h2>
+                <p className="text-indigo-200 text-sm mt-1">{clinic.COMPANYADDRESS}</p>
+                {clinic.COMPANYADDRESS2 && (
+                  <p className="text-indigo-200 text-sm">{clinic.COMPANYADDRESS2}</p>
+                )}
+              </div>
+              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+                clinic.ACTIVE === "Y" ? "bg-green-400 text-white" : "bg-red-400 text-white"
+              }`}>
+                {clinic.ACTIVE === "Y" ? "🟢 Active" : "🔴 Inactive"}
+              </span>
+            </div>
+          </div>
 
-                    {/* Delete Button */}
-                    <button
-                      onClick={() => handleDelete(clinic.id)}
-                      className="p-2 rounded-lg bg-red-500 text-white hover:bg-red-400"
-                    >
-                      <Trash2 size={13} />
-                    </button>
-
+          {/* Details grid */}
+          {!editing ? (
+            <div className="p-6">
+              <div className="grid md:grid-cols-2 gap-6 mb-6">
+                {[
+                  { label: "Company Name",    value: clinic.COMPANYNAME },
+                  { label: "Company ID",      value: clinic.COMPANYID },
+                  { label: "Phone / Address", value: clinic.COMPANYADDRESS },
+                  { label: "Address 2",       value: clinic.COMPANYADDRESS2 || "—" },  // ← shown
+                  { label: "Kiosk Message 1", value: clinic.KIOSKMESSAGE1  || "—" },
+                  { label: "Kiosk Message 2", value: clinic.KIOSKMESSAGE2  || "—" },
+                  { label: "Print Language",  value: clinic.PRINTLANGUAGE  || "—" },
+                  { label: "Backup Expiry",   value: clinic.BACKUPEXPIRY
+                      ? new Date(clinic.BACKUPEXPIRY).toLocaleDateString() : "—" },
+                ].map(({ label, value }) => (
+                  <div key={label} className="border-b pb-3">
+                    <p className="text-xs text-gray-500 uppercase font-semibold mb-1">{label}</p>
+                    <p className="text-sm font-medium text-gray-800">{value}</p>
                   </div>
-                </td>
-                <td className="p-4 font-medium">
-                  {clinic.name}
-                </td>
+                ))}
+              </div>
 
-                <td className="p-4">{clinic.location}</td>
+              <div className="flex justify-end">
+                <button onClick={() => setEditing(true)}
+                  className="flex items-center gap-2 px-5 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm">
+                  <Pencil size={14} /> Edit Clinic
+                </button>
+              </div>
+            </div>
+          ) : (
+            /* Edit form */
+            <div className="p-6">
+              <h3 className="text-lg font-semibold mb-4">Edit Clinic Details</h3>
+              <div className="grid md:grid-cols-2 gap-4 mb-6">
 
-                <td className="p-4">{clinic.email}</td>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Company Name</label>
+                  <input value={editData.COMPANYNAME || ""}
+                    onChange={(e) => setEditData({ ...editData, COMPANYNAME: e.target.value })}
+                    className={inputCls} placeholder="Enter company name" />
+                </div>
 
-                <td className="p-4">{clinic.mobile}</td>
+                <div>
+                  <label className="block text-sm font-medium mb-1">📞 Phone / Address</label>
+                  <input value={editData.COMPANYADDRESS || ""}
+                    onChange={(e) => setEditData({ ...editData, COMPANYADDRESS: e.target.value })}
+                    className={inputCls} placeholder="e.g. Phone: 04 561 5645" />
+                </div>
 
-                <td className="p-4">{clinic.incharge}</td>
+                {/* COMPANYADDRESS2 — now editable */}
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1">📍 Address 2</label>
+                  <input value={editData.COMPANYADDRESS2 || ""}
+                    onChange={(e) => setEditData({ ...editData, COMPANYADDRESS2: e.target.value })}
+                    className={inputCls} placeholder="e.g. Plot 333, Satwa, Dubai" />
+                </div>
 
-                <td className="p-4">{clinic.license}</td>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Kiosk Message 1</label>
+                  <input value={editData.KIOSKMESSAGE1 || ""}
+                    onChange={(e) => setEditData({ ...editData, KIOSKMESSAGE1: e.target.value })}
+                    className={inputCls} placeholder="Enter message 1" />
+                </div>
 
-              
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Kiosk Message 2</label>
+                  <input value={editData.KIOSKMESSAGE2 || ""}
+                    onChange={(e) => setEditData({ ...editData, KIOSKMESSAGE2: e.target.value })}
+                    className={inputCls} placeholder="Enter message 2" />
+                </div>
+
+              </div>
+              <div className="flex justify-end gap-3">
+                <button onClick={() => setEditing(false)}
+                  className="px-5 py-2 border rounded-lg text-gray-600 hover:bg-gray-50 text-sm">
+                  Cancel
+                </button>
+                <button onClick={handleSave} disabled={saving}
+                  className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 text-sm disabled:opacity-60">
+                  {saving ? "Saving..." : "Save Changes"}
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {!loading && !error && !clinic && (
+        <div className="bg-white rounded-xl p-10 text-center text-gray-500">
+          No clinic data found in database.
+        </div>
+      )}
     </div>
   );
 };
