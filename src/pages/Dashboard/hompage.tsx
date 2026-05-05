@@ -7,7 +7,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell,
 } from "recharts";
 
-const API = "http://localhost:5000/api";
+const API = "https://backend-production-2df7.up.railway.app/api";
 
 // ─── status helper ────────────────────────────────────────────────────────────
 function getStatus(row: any): "Waiting" | "Called" | "Completed" {

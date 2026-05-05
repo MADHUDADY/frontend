@@ -605,7 +605,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { doctorAPI } from "../../services/api";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://backend-production-2df7.up.railway.app";
 
 const categoryNames: Record<number, string> = {
   1: "Internal Medicine", 2: "Pediatrician",  3: "Ophthalmologist",

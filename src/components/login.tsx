@@ -2,7 +2,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 
-const API = "http://localhost:5000/api";
+const API = "https://backend-production-2df7.up.railway.app/api";
 
 export default function LoginCard() {
   const [mode,     setMode]    = useState<"login" | "register">("login");

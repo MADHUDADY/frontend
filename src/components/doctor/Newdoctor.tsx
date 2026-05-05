@@ -602,7 +602,7 @@ import { useState, useEffect, useRef } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { doctorAPI, clinicAPI } from "../../services/api";
 
-const BASE_URL = "http://localhost:5000";
+const BASE_URL = "https://backend-production-2df7.up.railway.app";
 
 const departments = [
   { id: 1,  name: "Internal Medicine" },

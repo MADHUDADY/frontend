@@ -1,7 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import axios from "axios";
 
-const API = "http://localhost:5000/api";
+const API = "https://backend-production-2df7.up.railway.app";
 
 const MONTHS = ["January","February","March","April","May","June",
   "July","August","September","October","November","December"];
