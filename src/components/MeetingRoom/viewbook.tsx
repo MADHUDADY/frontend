@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
 
-const API = 
+const API = "https://backend-production-2df7.up.railway.app/api";
 
 const STATUS_STYLES: Record<string, string> = {
   "Waiting":   "bg-yellow-100 text-yellow-600",
