@@ -75,6 +75,7 @@ export default function LoginCard() {
       const res = await axios.post(`${API}/employees/login`, { EMPID: username, PWD: password });
       if (res.data.success) {
         const user = res.data.data;
+        localStorage.setItem("token",    res.data.token);  // ← JWT token save
         localStorage.setItem("user",     user.EMPNAME);
         localStorage.setItem("role",     user.ROLE);
         localStorage.setItem("empId",    user.EMPID);
@@ -114,6 +115,7 @@ export default function LoginCard() {
       // Auto-login after register
       const loginRes = await axios.post(`${API}/employees/login`, { EMPID: reg.EMPID, PWD: reg.PWD });
       const user = loginRes.data.data;
+      localStorage.setItem("token",    loginRes.data.token);  // ← JWT token save
       localStorage.setItem("user",     user.EMPNAME);
       localStorage.setItem("role",     user.ROLE);
       localStorage.setItem("empId",    user.EMPID);
@@ -239,7 +241,6 @@ export default function LoginCard() {
             </div>
 
             {mode === "login" ? (
-              /* ── LOGIN FORM ─────────────────────────────────────────── */
               <>
                 <div className="lp-badge"><div className="lp-badge-dot"/>Secure Login</div>
                 <h1>Welcome Back 👋</h1>
@@ -275,7 +276,6 @@ export default function LoginCard() {
                 </button>
               </>
             ) : (
-              /* ── REGISTER FORM ─────────────────────────────────────── */
               <>
                 <div className="lp-badge"><div className="lp-badge-dot"/>New Account</div>
                 <h1>Create Account ✨</h1>
