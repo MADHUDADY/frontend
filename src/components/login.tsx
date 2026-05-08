@@ -75,7 +75,7 @@ export default function LoginCard() {
       const res = await axios.post(`${API}/employees/login`, { EMPID: username, PWD: password });
       if (res.data.success) {
         const user = res.data.data;
-        localStorage.setItem("token",    res.data.tokenNew);  // ← Fixed: tokenNew
+        localStorage.setItem("token",    res.data.token);  // ← backend sends 'token'
         localStorage.setItem("user",     user.EMPNAME);
         localStorage.setItem("role",     user.ROLE);
         localStorage.setItem("empId",    user.EMPID);
@@ -115,7 +115,7 @@ export default function LoginCard() {
       // Auto-login after register
       const loginRes = await axios.post(`${API}/employees/login`, { EMPID: reg.EMPID, PWD: reg.PWD });
       const user = loginRes.data.data;
-      localStorage.setItem("token",    loginRes.data.tokenNew);  // ← Fixed: tokenNew
+      localStorage.setItem("token",    loginRes.data.token);  // ← backend sends 'token'
       localStorage.setItem("user",     user.EMPNAME);
       localStorage.setItem("role",     user.ROLE);
       localStorage.setItem("empId",    user.EMPID);
