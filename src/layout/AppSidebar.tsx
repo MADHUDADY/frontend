@@ -19,7 +19,6 @@ import { FaUsers }           from "react-icons/fa";
 import { MdSupportAgent }    from "react-icons/md";
 import { MdQueuePlayNext }   from "react-icons/md";
 
-// ── Role helper ───────────────────────────────────────────────────────────────
 const getRole = (): string => localStorage.getItem("role") || "";
 const isAdmin = (): boolean => {
   const r = getRole();
@@ -35,42 +34,30 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
+  { icon: <GridIcon />, name: "Dashboard", path: "/dashboard" },
   {
-    icon: <GridIcon />,
-    name: "Dashboard",
-    path: "/dashboard",
-  },
-  {
-    icon: <FaClinicMedical />,
-    name: "Clinic",
-    adminOnly: true,
+    icon: <FaClinicMedical />, name: "Clinic", adminOnly: true,
     subItems: [
       { name: "New Clinic",  path: "/dashboard/NewClinic" },
       { name: "View Clinic", path: "/dashboard/ViewClinic" },
     ],
   },
   {
-    icon: <FaUserNurse />,
-    name: "Staff-Management",
-    adminOnly: true,
+    icon: <FaUserNurse />, name: "Staff-Management", adminOnly: true,
     subItems: [
       { name: "New Employee",  path: "/dashboard/NewEmployee" },
       { name: "View Employee", path: "/dashboard/ViewEmployee" },
     ],
   },
   {
-    // ✅ "Patients" duplicate removed — only Patient-Management kept
-    icon: <FaUsers />,
-    name: "Patient-Management",
+    icon: <FaUsers />, name: "Patient-Management",
     subItems: [
       { name: "New Patient",  path: "/dashboard/NewPatient" },
       { name: "View Patient", path: "/dashboard/ViewPatient" },
     ],
   },
   {
-    icon: <FaUserDoctor />,
-    name: "Doctors",
-    adminOnly: true,
+    icon: <FaUserDoctor />, name: "Doctors", adminOnly: true,
     subItems: [
       { name: "Doctors",         path: "/dashboard/Allergy" },
       { name: "Add Doctor",      path: "/dashboard/Newdoctor" },
@@ -78,72 +65,31 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <FaRegCalendarAlt />,
-    name: "Appointments",
+    icon: <FaRegCalendarAlt />, name: "Appointments",
     subItems: [
       { name: "New Appointment", path: "/dashboard/NewAppointments" },
       { name: "Appointments",    path: "/dashboard/Appointments" },
       { name: "Calendar",        path: "/dashboard/Calendar" },
     ],
   },
+  // ✅ Walk-in Kiosk — /kiosk (no sidebar, public page)
+  { icon: <MdQueuePlayNext />, name: "Walk-in Kiosk", path: "/kiosk" },
   {
-    // ✅ NEW — Kiosk / Walk-in page (client requirement)
-    icon: <MdQueuePlayNext />,
-    name: "Walk-in Kiosk",
-    path: "/dashboard/Kiosk",
-  },
-  {
-    icon: <FaRegCalendarAlt />,
-    name: "Meeting Room",
-    adminOnly: true,
+    icon: <FaRegCalendarAlt />, name: "Meeting Room", adminOnly: true,
     subItems: [
       { name: "New Book",  path: "/dashboard/Newbook" },
       { name: "View Book", path: "/dashboard/Viewbook" },
     ],
   },
+  { icon: <MdSupportAgent />, name: "IT Helpdesk", path: "/dashboard/Helpdesk" },
+  { icon: <FaLocationDot />,  name: "Locations",    path: "/dashboard/Locations",    adminOnly: true },
+  { icon: <FaUserCog />,      name: "Services",     path: "/dashboard/Services",     adminOnly: true },
+  { icon: <FaUserShield />,   name: "Specializations", path: "/dashboard/Specializations", adminOnly: true },
+  { icon: <TbAsset />,        name: "Assets",       path: "/dashboard/Assets",       adminOnly: true },
+  { icon: <FiActivity />,     name: "Activities",   path: "/dashboard/Activities" },
+  { icon: <TbMessages />,     name: "Messages",     path: "/dashboard/Messages" },
   {
-    icon: <MdSupportAgent />,
-    name: "IT Helpdesk",
-    path: "/dashboard/Helpdesk",
-  },
-  {
-    icon: <FaLocationDot />,
-    name: "Locations",
-    adminOnly: true,
-    path: "/dashboard/Locations",
-  },
-  {
-    icon: <FaUserCog />,
-    name: "Services",
-    adminOnly: true,
-    path: "/dashboard/Services",
-  },
-  {
-    icon: <FaUserShield />,
-    name: "Specializations",
-    adminOnly: true,
-    path: "/dashboard/Specializations",
-  },
-  {
-    icon: <TbAsset />,
-    name: "Assets",
-    adminOnly: true,
-    path: "/dashboard/Assets",
-  },
-  {
-    icon: <FiActivity />,
-    name: "Activities",
-    path: "/dashboard/Activities",
-  },
-  {
-    icon: <TbMessages />,
-    name: "Messages",
-    path: "/dashboard/Messages",
-  },
-  {
-    icon: <SiCssdesignawards />,
-    name: "HRM",
-    adminOnly: true,
+    icon: <SiCssdesignawards />, name: "HRM", adminOnly: true,
     subItems: [
       { name: "Staffs",      path: "/dashboard/hrm/staffs" },
       { name: "Departments", path: "/dashboard/hrm/departments" },
@@ -155,9 +101,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <MdAccountBalance />,
-    name: "Finance & Accounts",
-    adminOnly: true,
+    icon: <MdAccountBalance />, name: "Finance & Accounts", adminOnly: true,
     subItems: [
       { name: "Expenses",     path: "/dashboard/finance/expenses" },
       { name: "Income",       path: "/dashboard/finance/income" },
@@ -175,21 +119,13 @@ const AppSidebar: React.FC = () => {
   const location = useLocation();
 
   const userIsAdmin = isAdmin();
-  const visibleNavItems = navItems.filter(
-    (item) => !item.adminOnly || userIsAdmin
-  );
+  const visibleNavItems = navItems.filter(item => !item.adminOnly || userIsAdmin);
 
-  const [openSubmenu, setOpenSubmenu] = useState<{
-    type: "main" | "others";
-    index: number;
-  } | null>(null);
+  const [openSubmenu, setOpenSubmenu] = useState<{ type: "main" | "others"; index: number } | null>(null);
   const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>({});
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
 
-  const isActive = useCallback(
-    (path: string) => location.pathname === path,
-    [location.pathname],
-  );
+  const isActive = useCallback((path: string) => location.pathname === path, [location.pathname]);
 
   useEffect(() => {
     let submenuMatched = false;
@@ -213,16 +149,13 @@ const AppSidebar: React.FC = () => {
     if (openSubmenu !== null) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
-        setSubMenuHeight((prev) => ({
-          ...prev,
-          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
-        }));
+        setSubMenuHeight(prev => ({ ...prev, [key]: subMenuRefs.current[key]?.scrollHeight || 0 }));
       }
     }
   }, [openSubmenu]);
 
   const handleSubmenuToggle = (index: number, menuType: "main" | "others") => {
-    setOpenSubmenu((prev) => {
+    setOpenSubmenu(prev => {
       if (prev && prev.type === menuType && prev.index === index) return null;
       return { type: menuType, index };
     });
@@ -236,49 +169,26 @@ const AppSidebar: React.FC = () => {
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
               className={`menu-item group ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
-                  ? "menu-item-active"
-                  : "menu-item-inactive"
-              } cursor-pointer ${
-                !isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"
-              }`}
+                openSubmenu?.type === menuType && openSubmenu?.index === index ? "menu-item-active" : "menu-item-inactive"
+              } cursor-pointer ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}`}
             >
               <span className={`menu-item-icon-size ${
-                openSubmenu?.type === menuType && openSubmenu?.index === index
-                  ? "menu-item-icon-active"
-                  : "menu-item-icon-inactive"
-              }`}>
-                {nav.icon}
-              </span>
+                openSubmenu?.type === menuType && openSubmenu?.index === index ? "menu-item-icon-active" : "menu-item-icon-inactive"
+              }`}>{nav.icon}</span>
+              {(isExpanded || isHovered || isMobileOpen) && <span className="menu-item-text">{nav.name}</span>}
               {(isExpanded || isHovered || isMobileOpen) && (
-                <span className="menu-item-text">{nav.name}</span>
-              )}
-              {(isExpanded || isHovered || isMobileOpen) && (
-                <ChevronDownIcon
-                  className={`ml-auto w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.type === menuType && openSubmenu?.index === index
-                      ? "rotate-180 text-brand-500"
-                      : ""
-                  }`}
-                />
+                <ChevronDownIcon className={`ml-auto w-5 h-5 transition-transform duration-200 ${
+                  openSubmenu?.type === menuType && openSubmenu?.index === index ? "rotate-180 text-brand-500" : ""
+                }`} />
               )}
             </button>
           ) : (
             nav.path && (
-              <Link
-                to={nav.path}
-                className={`menu-item group ${
-                  isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"
-                }`}
-              >
-                <span className={`menu-item-icon-size ${
-                  isActive(nav.path) ? "menu-item-icon-active" : "menu-item-icon-inactive"
-                }`}>
+              <Link to={nav.path} className={`menu-item group ${isActive(nav.path) ? "menu-item-active" : "menu-item-inactive"}`}>
+                <span className={`menu-item-icon-size ${isActive(nav.path) ? "menu-item-icon-active" : "menu-item-icon-inactive"}`}>
                   {nav.icon}
                 </span>
-                {(isExpanded || isHovered || isMobileOpen) && (
-                  <span className="menu-item-text">{nav.name}</span>
-                )}
+                {(isExpanded || isHovered || isMobileOpen) && <span className="menu-item-text">{nav.name}</span>}
               </Link>
             )
           )}
@@ -286,44 +196,16 @@ const AppSidebar: React.FC = () => {
             <div
               ref={(el) => { subMenuRefs.current[`${menuType}-${index}`] = el; }}
               className="overflow-hidden transition-all duration-300"
-              style={{
-                height:
-                  openSubmenu?.type === menuType && openSubmenu?.index === index
-                    ? `${subMenuHeight[`${menuType}-${index}`]}px`
-                    : "0px",
-              }}
+              style={{ height: openSubmenu?.type === menuType && openSubmenu?.index === index ? `${subMenuHeight[`${menuType}-${index}`]}px` : "0px" }}
             >
               <ul className="mt-2 space-y-1 ml-9">
-                {nav.subItems.map((subItem) => (
+                {nav.subItems.map(subItem => (
                   <li key={subItem.name}>
-                    <Link
-                      to={subItem.path}
-                      className={`menu-dropdown-item ${
-                        isActive(subItem.path)
-                          ? "menu-dropdown-item-active"
-                          : "menu-dropdown-item-inactive"
-                      }`}
-                    >
+                    <Link to={subItem.path} className={`menu-dropdown-item ${isActive(subItem.path) ? "menu-dropdown-item-active" : "menu-dropdown-item-inactive"}`}>
                       {subItem.name}
                       <span className="flex items-center gap-1 ml-auto">
-                        {subItem.new && (
-                          <span className={`ml-auto ${
-                            isActive(subItem.path)
-                              ? "menu-dropdown-badge-active"
-                              : "menu-dropdown-badge-inactive"
-                          } menu-dropdown-badge`}>
-                            new
-                          </span>
-                        )}
-                        {subItem.pro && (
-                          <span className={`ml-auto ${
-                            isActive(subItem.path)
-                              ? "menu-dropdown-badge-active"
-                              : "menu-dropdown-badge-inactive"
-                          } menu-dropdown-badge`}>
-                            pro
-                          </span>
-                        )}
+                        {subItem.new && <span className={`ml-auto ${isActive(subItem.path) ? "menu-dropdown-badge-active" : "menu-dropdown-badge-inactive"} menu-dropdown-badge`}>new</span>}
+                        {subItem.pro && <span className={`ml-auto ${isActive(subItem.path) ? "menu-dropdown-badge-active" : "menu-dropdown-badge-inactive"} menu-dropdown-badge`}>pro</span>}
                       </span>
                     </Link>
                   </li>
@@ -357,24 +239,17 @@ const AppSidebar: React.FC = () => {
           )}
         </Link>
       </div>
-
       <div className="flex flex-col overflow-y-auto duration-300 ease-linear no-scrollbar">
         <nav className="mb-6">
           <div className="flex flex-col gap-4">
             <div>
-              <h2 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-              }`}>
-                {isExpanded || isHovered || isMobileOpen
-                  ? "Menu"
-                  : <HorizontaLDots className="size-6" />}
+              <h2 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}>
+                {isExpanded || isHovered || isMobileOpen ? "Menu" : <HorizontaLDots className="size-6" />}
               </h2>
               {renderMenuItems(visibleNavItems, "main")}
             </div>
             <div>
-              <h2 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${
-                !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
-              }`}>
+              <h2 className={`mb-4 text-xs uppercase flex leading-[20px] text-gray-400 ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}>
                 {isExpanded || isHovered || isMobileOpen ? "" : <HorizontaLDots />}
               </h2>
               {renderMenuItems(othersItems, "others")}
