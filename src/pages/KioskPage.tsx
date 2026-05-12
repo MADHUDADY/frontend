@@ -121,19 +121,24 @@ export default function KioskPage() {
     if (!validatePhone(phone)) return;
     try {
       setLoading(true);
-      const [patRes, apptRes] = await Promise.allSettled([
-        axios.get(`${API}/appointments/search-patient/${phone}`),
-        axios.get(`${API}/appointments/new-list`),
-      ]);
-      if (patRes.status === "fulfilled") {
-        const pts = patRes.value.data.data || [];
-        if (pts.length > 0) setPatient(pts[0]);
+      // Step 1: Get patient SLNO from mobile
+      const patRes = await axios.get(`${API}/appointments/search-patient/${phone}`);
+      const pts = patRes.data.data || [];
+      let patientSlno: number | null = null;
+      if (pts.length > 0) {
+        setPatient(pts[0]);
+        patientSlno = pts[0].SLNO;
       }
-      if (apptRes.status === "fulfilled") {
-        const all  = apptRes.value.data.data || [];
-        const mine = all.filter((a: any) => a.Mobile === phone);
-        setAppointments(mine);
-      }
+
+      // Step 2: Get appointments — filter by Mobile OR PatientId
+      const apptRes = await axios.get(`${API}/appointments/new-list`);
+      const all = apptRes.data.data || [];
+      const mine = all.filter((a: any) =>
+        a.Mobile === phone ||
+        String(a.Mobile) === String(phone) ||
+        (patientSlno && a.PatientId === patientSlno)
+      );
+      setAppointments(mine);
     } catch { setAppointments([]); }
     finally { setLoading(false); setScreen("appt_list"); }
   };
