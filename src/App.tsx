@@ -1,11 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Login from "./components/login";
-import Dashboard from "./Dashboard";
+import Login        from "./components/login";
+import Dashboard    from "./Dashboard";
+import KioskPage    from "./pages/KioskPage";   // ← Public kiosk
 import { AuthProvider } from "./context/AuthContext";
 
-// ── Role-based route guards ───────────────────────────────────────────────────
-
-// Any logged-in user (Admin + Reception + Staff + Call Centre)
+// ── Any logged-in user ───────────────────────────────────────────────────────
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem("token");
   const role  = localStorage.getItem("role");
@@ -13,7 +12,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// Admin only — Reception/Staff redirect to dashboard
+// ── Admin only ────────────────────────────────────────────────────────────────
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem("token");
   const role  = localStorage.getItem("role");
@@ -25,11 +24,12 @@ function AdminRoute({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>   {/* ← here because useNavigate needs BrowserRouter above it */}
+      <AuthProvider>
         <Routes>
 
-          {/* ── Public ── */}
-          <Route path="/" element={<Login />} />
+          {/* ── Public — no login needed ── */}
+          <Route path="/"      element={<Login />} />
+          <Route path="/kiosk" element={<KioskPage />} />  {/* ← Patient self check-in */}
 
           {/* ── Any logged-in user ── */}
           <Route
