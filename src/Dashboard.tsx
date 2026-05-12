@@ -23,6 +23,7 @@ import Assets           from "./pages/Assets";
 import Activities       from "./pages/Activities";
 import Messages         from "./pages/Messages";
 import HelpdeskPage     from "./components/helpdesk/HelpdeskPage";
+import KioskPage        from "./pages/KioskPage";   // ← NEW
 import {
   HRMStaffs, HRMDepartments, HRMDesignation,
   HRMAttendance, HRMLeaves, HRMHolidays, HRMPayroll,
@@ -54,6 +55,7 @@ export default function Dashboard() {
         <Route path="Helpdesk"         element={<HelpdeskPage />} />
         <Route path="Messages"         element={<Messages />} />
         <Route path="Activities"       element={<Activities />} />
+        <Route path="Kiosk"            element={<KioskPage />} />  {/* ← NEW */}
 
         {/* 🔒 Admin only — Clinic */}
         <Route path="NewClinic"        element={<AdminOnly><NewClinic /></AdminOnly>} />

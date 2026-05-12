@@ -3,21 +3,21 @@ import { Link, useLocation } from "react-router-dom";
 
 import { ChevronDownIcon, GridIcon, HorizontaLDots } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import { FaUserDoctor }             from "react-icons/fa6";
-import { MdOutlineSpatialAudioOff } from "react-icons/md";
-import { FaRegCalendarAlt }         from "react-icons/fa";
-import { FaLocationDot }            from "react-icons/fa6";
-import { FaUserCog }                from "react-icons/fa";
-import { FaUserShield }             from "react-icons/fa6";
-import { TbAsset }                  from "react-icons/tb";
-import { FiActivity }               from "react-icons/fi";
-import { TbMessages }               from "react-icons/tb";
-import { SiCssdesignawards }        from "react-icons/si";
-import { MdAccountBalance }         from "react-icons/md";
-import { FaClinicMedical }          from "react-icons/fa";
-import { FaUserNurse }              from "react-icons/fa";
-import { FaUsers }                  from "react-icons/fa";
-import { MdSupportAgent }           from "react-icons/md";
+import { FaUserDoctor }   from "react-icons/fa6";
+import { FaRegCalendarAlt } from "react-icons/fa";
+import { FaLocationDot }  from "react-icons/fa6";
+import { FaUserCog }      from "react-icons/fa";
+import { FaUserShield }   from "react-icons/fa6";
+import { TbAsset }        from "react-icons/tb";
+import { FiActivity }     from "react-icons/fi";
+import { TbMessages }     from "react-icons/tb";
+import { SiCssdesignawards } from "react-icons/si";
+import { MdAccountBalance }  from "react-icons/md";
+import { FaClinicMedical }   from "react-icons/fa";
+import { FaUserNurse }       from "react-icons/fa";
+import { FaUsers }           from "react-icons/fa";
+import { MdSupportAgent }    from "react-icons/md";
+import { MdQueuePlayNext }   from "react-icons/md";
 
 // ── Role helper ───────────────────────────────────────────────────────────────
 const getRole = (): string => localStorage.getItem("role") || "";
@@ -59,6 +59,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    // ✅ "Patients" duplicate removed — only Patient-Management kept
     icon: <FaUsers />,
     name: "Patient-Management",
     subItems: [
@@ -77,14 +78,6 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <MdOutlineSpatialAudioOff />,
-    name: "Patients",
-    subItems: [
-      { name: "New Patient",  path: "/dashboard/NewPatient" },
-      { name: "View Patient", path: "/dashboard/ViewPatient" },
-    ],
-  },
-  {
     icon: <FaRegCalendarAlt />,
     name: "Appointments",
     subItems: [
@@ -92,6 +85,12 @@ const navItems: NavItem[] = [
       { name: "Appointments",    path: "/dashboard/Appointments" },
       { name: "Calendar",        path: "/dashboard/Calendar" },
     ],
+  },
+  {
+    // ✅ NEW — Kiosk / Walk-in page (client requirement)
+    icon: <MdQueuePlayNext />,
+    name: "Walk-in Kiosk",
+    path: "/dashboard/Kiosk",
   },
   {
     icon: <FaRegCalendarAlt />,
