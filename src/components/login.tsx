@@ -6,10 +6,8 @@ import { useAuth } from "../context/AuthContext";
 const API = "https://backend-production-2df7.up.railway.app/api";
 
 export default function LoginCard() {
-  const [mode,      setMode]     = useState<"login" | "register">("login");
   const [username,  setUsername] = useState("");
   const [password,  setPassword] = useState("");
-  const [focused,   setFocused]  = useState<string | null>(null);
   const [loading,   setLoading]  = useState(false);
   const [success,   setSuccess]  = useState(false);
   const [shake,     setShake]    = useState(false);
@@ -17,12 +15,7 @@ export default function LoginCard() {
   const [particles, setParticles] = useState<any[]>([]);
   const navigate  = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { login } = useAuth();  // ← AuthContext hook
-
-  const [reg, setReg] = useState({
-    EMPNAME: "", EMPID: "", PWD: "", CONFIRMPWD: "",
-    MOBILE: "", EMAILID: "", ROLE: "Staff", GENDER: "", CENTERID: "101"
-  });
+  const { login } = useAuth();
 
   useEffect(() => {
     const colors = ["#1a7a6e","#002B6B","#4fb8ac","#a8d8d0","#d0e8f5"];
@@ -65,71 +58,21 @@ export default function LoginCard() {
 
   const doShake = () => { setShake(true); setTimeout(() => setShake(false), 620); };
 
-  // ── LOGIN ─────────────────────────────────────────────────────────────────
   const handleLogin = async () => {
     if (!username.trim() || !password.trim()) {
       setErrMsg("Please enter username and password"); doShake(); return;
     }
     try {
       setLoading(true); setErrMsg("");
-
       const res = await axios.post(`${API}/clinic/login`, { EMPID: username, PWD: password });
-
       if (res.data.success) {
-        login(res.data.token, res.data.data);  // ← AuthContext login (localStorage + state)
+        login(res.data.token, res.data.data);
         setSuccess(true);
         setTimeout(() => navigate("/dashboard"), 1200);
       }
     } catch (err: any) {
       setErrMsg(err?.response?.data?.message || "Invalid credentials"); doShake();
     } finally { setLoading(false); }
-  };
-
-  // ── REGISTER ──────────────────────────────────────────────────────────────
-  const handleRegister = async () => {
-    if (!reg.EMPNAME.trim() || !reg.EMPID.trim() || !reg.PWD.trim()) {
-      setErrMsg("Name, Employee ID and Password are required"); doShake(); return;
-    }
-    if (reg.PWD !== reg.CONFIRMPWD) {
-      setErrMsg("Passwords do not match"); doShake(); return;
-    }
-    if (reg.PWD.length < 3) {
-      setErrMsg("Password must be at least 3 characters"); doShake(); return;
-    }
-    try {
-      setLoading(true); setErrMsg("");
-
-      await axios.post(`${API}/employees`, {
-        EMPNAME:  reg.EMPNAME,
-        EMPID:    reg.EMPID,
-        PWD:      reg.PWD,
-        MOBILE:   reg.MOBILE,
-        EMAILID:  reg.EMAILID,
-        ROLE:     reg.ROLE,
-        GENDER:   reg.GENDER,
-        CENTERID: reg.CENTERID,
-        EMPTYPE:  "Permanent",
-      });
-
-      const loginRes = await axios.post(`${API}/clinic/login`, {
-        EMPID: reg.EMPID,
-        PWD:   reg.PWD,
-      });
-
-      if (loginRes.data.success) {
-        login(loginRes.data.token, loginRes.data.data);  // ← AuthContext login
-        setSuccess(true);
-        setTimeout(() => navigate("/dashboard"), 1200);
-      }
-    } catch (err: any) {
-      setErrMsg(err?.response?.data?.message || "Registration failed"); doShake();
-    } finally { setLoading(false); }
-  };
-
-  const switchMode = (m: "login" | "register") => {
-    setMode(m); setErrMsg(""); setSuccess(false);
-    setUsername(""); setPassword("");
-    setReg({ EMPNAME:"", EMPID:"", PWD:"", CONFIRMPWD:"", MOBILE:"", EMAILID:"", ROLE:"Staff", GENDER:"", CENTERID:"101" });
   };
 
   return (
@@ -162,24 +105,18 @@ export default function LoginCard() {
         @keyframes shk{0%,100%{transform:translateX(0)}20%{transform:translateX(-9px)}40%{transform:translateX(9px)}60%{transform:translateX(-6px)}80%{transform:translateX(6px)}}
         .lp-prog{position:absolute;top:0;left:0;height:3px;background:linear-gradient(90deg,#1a7a6e,#4fb8ac);border-radius:3px 3px 0 0;width:0;transition:width 1.6s cubic-bezier(.4,0,.2,1);}
         .lp-prog.go{width:90%} .lp-prog.done{width:100%;background:linear-gradient(90deg,#22c55e,#4ade80)}
-        .lp-tabs{display:flex;background:#f1f5f9;border-radius:12px;padding:4px;margin-bottom:24px;gap:4px;}
-        .lp-tab{flex:1;padding:9px 0;border:none;border-radius:9px;font-family:'Plus Jakarta Sans',sans-serif;font-size:13px;font-weight:700;cursor:pointer;transition:all .2s;}
-        .lp-tab.active{background:white;color:#002B6B;box-shadow:0 2px 8px rgba(0,0,0,0.08);}
-        .lp-tab.inactive{background:transparent;color:#94a3b8;}
         .lp-badge{display:inline-flex;align-items:center;gap:7px;background:rgba(26,122,110,.1);color:#1a7a6e;font-size:11px;font-weight:700;letter-spacing:1.6px;text-transform:uppercase;padding:5px 13px;border-radius:50px;margin-bottom:12px;}
         .lp-badge-dot{width:6px;height:6px;background:#1a7a6e;border-radius:50%;animation:blink 1.3s ease infinite}
         .lp-card h1{font-family:'Playfair Display',serif;font-size:26px;color:#002B6B;line-height:1.22;margin-bottom:4px;}
         .lp-sub{font-size:13px;color:#7a8fb0;margin-bottom:20px;}
         .lp-err{background:#fee2e2;color:#dc2626;border-radius:10px;padding:10px 14px;font-size:13px;font-weight:600;margin-bottom:14px;text-align:center;border:1px solid #fecaca;}
-        .lp-hint{background:rgba(26,122,110,0.07);border:1px solid rgba(26,122,110,0.15);border-radius:10px;padding:8px 14px;font-size:12px;color:#1a7a6e;margin-bottom:14px;text-align:center;}
         .lp-field{margin-bottom:14px;}
         .lp-field label{display:block;font-size:12px;font-weight:700;color:#374151;margin-bottom:5px;}
         .lp-iw{position:relative}
-        .lp-iw input, .lp-iw select{width:100%;padding:12px 44px 12px 14px;border:2px solid #dde3ef;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:#1e2d50;background:#f8faff;outline:none;transition:all .2s;}
-        .lp-iw input:focus, .lp-iw select:focus{border-color:#1a7a6e;background:white;box-shadow:0 0 0 4px rgba(26,122,110,.08);}
+        .lp-iw input{width:100%;padding:12px 44px 12px 14px;border:2px solid #dde3ef;border-radius:12px;font-family:'Plus Jakarta Sans',sans-serif;font-size:14px;color:#1e2d50;background:#f8faff;outline:none;transition:all .2s;}
+        .lp-iw input:focus{border-color:#1a7a6e;background:white;box-shadow:0 0 0 4px rgba(26,122,110,.08);}
         .lp-iw input::placeholder{color:#b0bcd4}
         .lp-ico{position:absolute;right:14px;top:50%;transform:translateY(-50%);color:#c5cfe0;pointer-events:none;}
-        .lp-grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
         .lp-btn{width:100%;padding:14px;background:linear-gradient(135deg,#002B6B 0%,#0044a8 100%);color:white;border:none;border-radius:50px;font-family:'Plus Jakarta Sans',sans-serif;font-size:15px;font-weight:800;cursor:pointer;transition:transform .2s,box-shadow .2s;box-shadow:0 8px 26px rgba(0,43,107,.3);margin-top:6px;}
         .lp-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,43,107,.38)}
         .lp-btn:disabled{cursor:not-allowed;opacity:.7}
@@ -227,140 +164,35 @@ export default function LoginCard() {
           <div className={`lp-card ${shake ? "lp-shake" : ""}`}>
             <div className={`lp-prog ${loading ? "go" : ""} ${success ? "done" : ""}`}/>
 
-            <div className="lp-tabs">
-              <button className={`lp-tab ${mode==="login"?"active":"inactive"}`} onClick={() => switchMode("login")}>
-                🔐 Login
-              </button>
-              <button className={`lp-tab ${mode==="register"?"active":"inactive"}`} onClick={() => switchMode("register")}>
-                ✨ Create Account
-              </button>
+            <div className="lp-badge"><div className="lp-badge-dot"/>Secure Login</div>
+            <h1>Welcome Back 👋</h1>
+            <p className="lp-sub">Sign in to your hospital portal</p>
+
+            {errMsg && <div className="lp-err">❌ {errMsg}</div>}
+
+            <div className="lp-field">
+              <label>Username</label>
+              <div className="lp-iw">
+                <input type="text" placeholder="Enter username" value={username}
+                  onChange={e => setUsername(e.target.value)}
+                  onKeyDown={e => e.key==="Enter" && !loading && handleLogin()} />
+                <span className="lp-ico">👤</span>
+              </div>
             </div>
 
-            {mode === "login" ? (
-              <>
-                <div className="lp-badge"><div className="lp-badge-dot"/>Secure Login</div>
-                <h1>Welcome Back 👋</h1>
-                <p className="lp-sub">Sign in to your hospital portal</p>
+            <div className="lp-field">
+              <label>Password</label>
+              <div className="lp-iw">
+                <input type="password" placeholder="Enter password" value={password}
+                  onChange={e => setPassword(e.target.value)}
+                  onKeyDown={e => e.key==="Enter" && !loading && handleLogin()} />
+                <span className="lp-ico">🔒</span>
+              </div>
+            </div>
 
-                {errMsg && <div className="lp-err">❌ {errMsg}</div>}
-                <div className="lp-hint">🔑 Default: <strong>ADMIN</strong> / <strong>123</strong></div>
-
-                <div className="lp-field">
-                  <label>Username</label>
-                  <div className="lp-iw">
-                    <input type="text" placeholder="Enter username" value={username}
-                      onChange={e => setUsername(e.target.value)}
-                      onFocus={() => setFocused("user")} onBlur={() => setFocused(null)}
-                      onKeyDown={e => e.key==="Enter" && !loading && handleLogin()} />
-                    <span className="lp-ico">👤</span>
-                  </div>
-                </div>
-
-                <div className="lp-field">
-                  <label>Password</label>
-                  <div className="lp-iw">
-                    <input type="password" placeholder="Enter password" value={password}
-                      onChange={e => setPassword(e.target.value)}
-                      onFocus={() => setFocused("pass")} onBlur={() => setFocused(null)}
-                      onKeyDown={e => e.key==="Enter" && !loading && handleLogin()} />
-                    <span className="lp-ico">🔒</span>
-                  </div>
-                </div>
-
-                <button className="lp-btn" onClick={handleLogin} disabled={loading}>
-                  {success ? "✅ Login Successful!" : loading ? <span><span className="lp-spin"/>Signing in...</span> : "Login"}
-                </button>
-              </>
-            ) : (
-              <>
-                <div className="lp-badge"><div className="lp-badge-dot"/>New Account</div>
-                <h1>Create Account ✨</h1>
-                <p className="lp-sub">Register as hospital staff member</p>
-
-                {errMsg && <div className="lp-err">❌ {errMsg}</div>}
-
-                <div className="lp-grid2">
-                  <div className="lp-field">
-                    <label>Full Name *</label>
-                    <div className="lp-iw">
-                      <input type="text" placeholder="Your name" value={reg.EMPNAME}
-                        onChange={e => setReg({...reg, EMPNAME: e.target.value})} />
-                    </div>
-                  </div>
-                  <div className="lp-field">
-                    <label>Employee ID *</label>
-                    <div className="lp-iw">
-                      <input type="text" placeholder="e.g. EMP001" value={reg.EMPID}
-                        onChange={e => setReg({...reg, EMPID: e.target.value})} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="lp-grid2">
-                  <div className="lp-field">
-                    <label>Password *</label>
-                    <div className="lp-iw">
-                      <input type="password" placeholder="Create password" value={reg.PWD}
-                        onChange={e => setReg({...reg, PWD: e.target.value})} />
-                    </div>
-                  </div>
-                  <div className="lp-field">
-                    <label>Confirm Password *</label>
-                    <div className="lp-iw">
-                      <input type="password" placeholder="Repeat password" value={reg.CONFIRMPWD}
-                        onChange={e => setReg({...reg, CONFIRMPWD: e.target.value})} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="lp-grid2">
-                  <div className="lp-field">
-                    <label>Mobile</label>
-                    <div className="lp-iw">
-                      <input type="tel" placeholder="+971 ..." value={reg.MOBILE}
-                        onChange={e => setReg({...reg, MOBILE: e.target.value})} />
-                    </div>
-                  </div>
-                  <div className="lp-field">
-                    <label>Email</label>
-                    <div className="lp-iw">
-                      <input type="email" placeholder="email@clinic.com" value={reg.EMAILID}
-                        onChange={e => setReg({...reg, EMAILID: e.target.value})} />
-                    </div>
-                  </div>
-                </div>
-
-                <div className="lp-grid2">
-                  <div className="lp-field">
-                    <label>Role</label>
-                    <div className="lp-iw">
-                      <select value={reg.ROLE} onChange={e => setReg({...reg, ROLE: e.target.value})}>
-                        <option value="Staff">Staff</option>
-                        <option value="Admin">Admin</option>
-                        <option value="Doctor">Doctor</option>
-                        <option value="Reception">Reception</option>
-                        <option value="Call Centre">Call Centre</option>
-                      </select>
-                    </div>
-                  </div>
-                  <div className="lp-field">
-                    <label>Gender</label>
-                    <div className="lp-iw">
-                      <select value={reg.GENDER} onChange={e => setReg({...reg, GENDER: e.target.value})}>
-                        <option value="">Select</option>
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                      </select>
-                    </div>
-                  </div>
-                </div>
-
-                <button className="lp-btn" onClick={handleRegister} disabled={loading}>
-                  {success ? "✅ Account Created!" : loading ? <span><span className="lp-spin"/>Creating account...</span> : "Create Account & Login"}
-                </button>
-              </>
-            )}
+            <button className="lp-btn" onClick={handleLogin} disabled={loading}>
+              {success ? "✅ Login Successful!" : loading ? <span><span className="lp-spin"/>Signing in...</span> : "Login"}
+            </button>
           </div>
         </div>
       </div>
