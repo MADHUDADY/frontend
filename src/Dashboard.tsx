@@ -1,10 +1,8 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Navigate } from "react-router-dom";
 
 import AppLayout        from "./layout/AppLayout";
 import Home             from "./pages/Dashboard/Home";
 
-// existing pages
-import Allergy          from "./components/New/Allergy&Immunology";
 import Appointments     from "./components/Appointment/Appointments";
 import NewAppointments  from "./components/Appointment/NewAppointment";
 import Calendar         from "./components/Appointment/Calendar";
@@ -18,98 +16,83 @@ import Newbook          from "./components/MeetingRoom/newbook";
 import Viewbook         from "./components/MeetingRoom/viewbook";
 import Newdoctor        from "./components/doctor/Newdoctor";
 import DoctorsDetails   from "./components/doctor/DoctorsDetails";
-
-// sidebar pages
 import Locations        from "./pages/Locations";
 import Services         from "./pages/Services";
 import Specializations  from "./pages/Specializations";
 import Assets           from "./pages/Assets";
 import Activities       from "./pages/Activities";
 import Messages         from "./pages/Messages";
-
-// HRM pages
+import HelpdeskPage     from "./components/helpdesk/HelpdeskPage";
 import {
-  HRMStaffs,
-  HRMDepartments,
-  HRMDesignation,
-  HRMAttendance,
-  HRMLeaves,
-  HRMHolidays,
-  HRMPayroll,
+  HRMStaffs, HRMDepartments, HRMDesignation,
+  HRMAttendance, HRMLeaves, HRMHolidays, HRMPayroll,
 } from "./pages/HRM";
-
-// Finance pages
 import {
-  FinanceExpenses,
-  FinanceIncome,
-  FinanceInvoices,
-  FinancePayments,
-  FinanceTransactions,
+  FinanceExpenses, FinanceIncome, FinanceInvoices,
+  FinancePayments, FinanceTransactions,
 } from "./pages/Finance";
 
-// 🆕 Helpdesk
-import HelpdeskPage     from "./components/helpdesk/HelpdeskPage";
+// ── Admin only guard ──────────────────────────────────────────────────────────
+function AdminOnly({ children }: { children: React.ReactNode }) {
+  const role = localStorage.getItem("role") || "";
+  const ok   = role === "Admin" || role === "ADMIN";
+  return ok ? <>{children}</> : <Navigate to="/dashboard" replace />;
+}
 
 export default function Dashboard() {
   return (
     <Routes>
       <Route element={<AppLayout />}>
 
-        {/* Home */}
-        <Route index                        element={<Home />} />
+        {/* ✅ Everyone */}
+        <Route index                   element={<Home />} />
+        <Route path="NewPatient"       element={<NewPatient />} />
+        <Route path="ViewPatient"      element={<ViewPatient />} />
+        <Route path="NewAppointments"  element={<NewAppointments />} />
+        <Route path="Appointments"     element={<Appointments />} />
+        <Route path="Calendar"         element={<Calendar />} />
+        <Route path="Helpdesk"         element={<HelpdeskPage />} />
+        <Route path="Messages"         element={<Messages />} />
+        <Route path="Activities"       element={<Activities />} />
 
-        {/* Clinic */}
-        <Route path="NewClinic"             element={<NewClinic />} />
-        <Route path="ViewClinic"            element={<ViewClinic />} />
+        {/* 🔒 Admin only — Clinic */}
+        <Route path="NewClinic"        element={<AdminOnly><NewClinic /></AdminOnly>} />
+        <Route path="ViewClinic"       element={<AdminOnly><ViewClinic /></AdminOnly>} />
 
-        {/* Staff */}
-        <Route path="NewEmployee"           element={<NewEmployee />} />
-        <Route path="ViewEmployee"          element={<ViewEmployee />} />
+        {/* 🔒 Admin only — Staff */}
+        <Route path="NewEmployee"      element={<AdminOnly><NewEmployee /></AdminOnly>} />
+        <Route path="ViewEmployee"     element={<AdminOnly><ViewEmployee /></AdminOnly>} />
 
-        {/* Patient */}
-        <Route path="NewPatient"            element={<NewPatient />} />
-        <Route path="ViewPatient"           element={<ViewPatient />} />
+        {/* 🔒 Admin only — Doctors */}
+        <Route path="Allergy"          element={<AdminOnly><Newdoctor /></AdminOnly>} />
+        <Route path="Newdoctor"        element={<AdminOnly><Newdoctor /></AdminOnly>} />
+        <Route path="DoctorsDetails"   element={<AdminOnly><DoctorsDetails /></AdminOnly>} />
 
-        {/* Doctors */}
-        <Route path="Allergy"              element={<Allergy />} />
-        <Route path="Newdoctor"            element={<Newdoctor />} />
-        <Route path="DoctorsDetails"       element={<DoctorsDetails />} />
+        {/* 🔒 Admin only — Meeting Room */}
+        <Route path="Newbook"          element={<AdminOnly><Newbook /></AdminOnly>} />
+        <Route path="Viewbook"         element={<AdminOnly><Viewbook /></AdminOnly>} />
 
-        {/* Appointments */}
-        <Route path="NewAppointments"      element={<NewAppointments />} />
-        <Route path="Appointments"         element={<Appointments />} />
-        <Route path="Calendar"             element={<Calendar />} />
+        {/* 🔒 Admin only — Masters */}
+        <Route path="Locations"        element={<AdminOnly><Locations /></AdminOnly>} />
+        <Route path="Services"         element={<AdminOnly><Services /></AdminOnly>} />
+        <Route path="Specializations"  element={<AdminOnly><Specializations /></AdminOnly>} />
+        <Route path="Assets"           element={<AdminOnly><Assets /></AdminOnly>} />
 
-        {/* Meeting Room */}
-        <Route path="Newbook"              element={<Newbook />} />
-        <Route path="Viewbook"             element={<Viewbook />} />
+        {/* 🔒 Admin only — HRM */}
+        <Route path="hrm/staffs"       element={<AdminOnly><HRMStaffs /></AdminOnly>} />
+        <Route path="hrm/departments"  element={<AdminOnly><HRMDepartments /></AdminOnly>} />
+        <Route path="hrm/designation"  element={<AdminOnly><HRMDesignation /></AdminOnly>} />
+        <Route path="hrm/attendance"   element={<AdminOnly><HRMAttendance /></AdminOnly>} />
+        <Route path="hrm/leaves"       element={<AdminOnly><HRMLeaves /></AdminOnly>} />
+        <Route path="hrm/holidays"     element={<AdminOnly><HRMHolidays /></AdminOnly>} />
+        <Route path="hrm/payroll"      element={<AdminOnly><HRMPayroll /></AdminOnly>} />
 
-        {/* Sidebar bottom */}
-        <Route path="Locations"            element={<Locations />} />
-        <Route path="Services"             element={<Services />} />
-        <Route path="Specializations"      element={<Specializations />} />
-        <Route path="Assets"               element={<Assets />} />
-        <Route path="Activities"           element={<Activities />} />
-        <Route path="Messages"             element={<Messages />} />
-
-        {/* HRM */}
-        <Route path="hrm/staffs"           element={<HRMStaffs />} />
-        <Route path="hrm/departments"      element={<HRMDepartments />} />
-        <Route path="hrm/designation"      element={<HRMDesignation />} />
-        <Route path="hrm/attendance"       element={<HRMAttendance />} />
-        <Route path="hrm/leaves"           element={<HRMLeaves />} />
-        <Route path="hrm/holidays"         element={<HRMHolidays />} />
-        <Route path="hrm/payroll"          element={<HRMPayroll />} />
-
-        {/* Finance & Accounts */}
-        <Route path="finance/expenses"     element={<FinanceExpenses />} />
-        <Route path="finance/income"       element={<FinanceIncome />} />
-        <Route path="finance/invoices"     element={<FinanceInvoices />} />
-        <Route path="finance/payments"     element={<FinancePayments />} />
-        <Route path="finance/transactions" element={<FinanceTransactions />} />
-
-        {/* 🆕 IT Helpdesk */}
-        <Route path="Helpdesk"             element={<HelpdeskPage />} />
+        {/* 🔒 Admin only — Finance */}
+        <Route path="finance/expenses"     element={<AdminOnly><FinanceExpenses /></AdminOnly>} />
+        <Route path="finance/income"       element={<AdminOnly><FinanceIncome /></AdminOnly>} />
+        <Route path="finance/invoices"     element={<AdminOnly><FinanceInvoices /></AdminOnly>} />
+        <Route path="finance/payments"     element={<AdminOnly><FinancePayments /></AdminOnly>} />
+        <Route path="finance/transactions" element={<AdminOnly><FinanceTransactions /></AdminOnly>} />
 
       </Route>
     </Routes>

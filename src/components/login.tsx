@@ -1,23 +1,24 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
+import { useAuth } from "../context/AuthContext";
 
 const API = "https://backend-production-2df7.up.railway.app/api";
 
 export default function LoginCard() {
-  const [mode,     setMode]    = useState<"login" | "register">("login");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [focused,  setFocused]  = useState<string | null>(null);
-  const [loading,  setLoading]  = useState(false);
-  const [success,  setSuccess]  = useState(false);
-  const [shake,    setShake]    = useState(false);
-  const [errMsg,   setErrMsg]   = useState("");
+  const [mode,      setMode]     = useState<"login" | "register">("login");
+  const [username,  setUsername] = useState("");
+  const [password,  setPassword] = useState("");
+  const [focused,   setFocused]  = useState<string | null>(null);
+  const [loading,   setLoading]  = useState(false);
+  const [success,   setSuccess]  = useState(false);
+  const [shake,     setShake]    = useState(false);
+  const [errMsg,    setErrMsg]   = useState("");
   const [particles, setParticles] = useState<any[]>([]);
   const navigate  = useNavigate();
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const { login } = useAuth();  // ← AuthContext hook
 
-  // Register fields
   const [reg, setReg] = useState({
     EMPNAME: "", EMPID: "", PWD: "", CONFIRMPWD: "",
     MOBILE: "", EMAILID: "", ROLE: "Staff", GENDER: "", CENTERID: "101"
@@ -33,7 +34,6 @@ export default function LoginCard() {
     })));
   }, []);
 
-  // ECG canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -72,14 +72,11 @@ export default function LoginCard() {
     }
     try {
       setLoading(true); setErrMsg("");
-      const res = await axios.post(`${API}/employees/login`, { EMPID: username, PWD: password });
+
+      const res = await axios.post(`${API}/clinic/login`, { EMPID: username, PWD: password });
+
       if (res.data.success) {
-        const user = res.data.data;
-        localStorage.setItem("token",    res.data.token);  // ← backend sends 'token'
-        localStorage.setItem("user",     user.EMPNAME);
-        localStorage.setItem("role",     user.ROLE);
-        localStorage.setItem("empId",    user.EMPID);
-        localStorage.setItem("centerId", user.CENTERID);
+        login(res.data.token, res.data.data);  // ← AuthContext login (localStorage + state)
         setSuccess(true);
         setTimeout(() => navigate("/dashboard"), 1200);
       }
@@ -101,27 +98,29 @@ export default function LoginCard() {
     }
     try {
       setLoading(true); setErrMsg("");
+
       await axios.post(`${API}/employees`, {
-        EMPNAME:   reg.EMPNAME,
-        EMPID:     reg.EMPID,
-        PWD:       reg.PWD,
-        MOBILE:    reg.MOBILE,
-        EMAILID:   reg.EMAILID,
-        ROLE:      reg.ROLE,
-        GENDER:    reg.GENDER,
-        CENTERID:  reg.CENTERID,
-        EMPTYPE:   "Permanent",
+        EMPNAME:  reg.EMPNAME,
+        EMPID:    reg.EMPID,
+        PWD:      reg.PWD,
+        MOBILE:   reg.MOBILE,
+        EMAILID:  reg.EMAILID,
+        ROLE:     reg.ROLE,
+        GENDER:   reg.GENDER,
+        CENTERID: reg.CENTERID,
+        EMPTYPE:  "Permanent",
       });
-      // Auto-login after register
-      const loginRes = await axios.post(`${API}/employees/login`, { EMPID: reg.EMPID, PWD: reg.PWD });
-      const user = loginRes.data.data;
-      localStorage.setItem("token",    loginRes.data.token);  // ← backend sends 'token'
-      localStorage.setItem("user",     user.EMPNAME);
-      localStorage.setItem("role",     user.ROLE);
-      localStorage.setItem("empId",    user.EMPID);
-      localStorage.setItem("centerId", user.CENTERID);
-      setSuccess(true);
-      setTimeout(() => navigate("/dashboard"), 1200);
+
+      const loginRes = await axios.post(`${API}/clinic/login`, {
+        EMPID: reg.EMPID,
+        PWD:   reg.PWD,
+      });
+
+      if (loginRes.data.success) {
+        login(loginRes.data.token, loginRes.data.data);  // ← AuthContext login
+        setSuccess(true);
+        setTimeout(() => navigate("/dashboard"), 1200);
+      }
     } catch (err: any) {
       setErrMsg(err?.response?.data?.message || "Registration failed"); doShake();
     } finally { setLoading(false); }
@@ -200,7 +199,6 @@ export default function LoginCard() {
         ))}
 
         <div className="lp-layout">
-          {/* LEFT */}
           <div className="lp-left">
             <div className="lp-brand">
               <div className="lp-brand-icon">
@@ -226,11 +224,9 @@ export default function LoginCard() {
             </div>
           </div>
 
-          {/* CARD */}
           <div className={`lp-card ${shake ? "lp-shake" : ""}`}>
             <div className={`lp-prog ${loading ? "go" : ""} ${success ? "done" : ""}`}/>
 
-            {/* Tabs */}
             <div className="lp-tabs">
               <button className={`lp-tab ${mode==="login"?"active":"inactive"}`} onClick={() => switchMode("login")}>
                 🔐 Login
