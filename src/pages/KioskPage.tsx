@@ -40,6 +40,17 @@ export default function KioskPage() {
     }).catch(() => {});
   }, []);
 
+  // Auto print/SMS based on clinic config when token issued
+  useEffect(() => {
+    if (screen !== "token_issued" || !tokenInfo || !tokenNumber) return;
+    const cfg = localStorage.getItem("ticketConfig");
+    const mode = cfg ? JSON.parse(cfg).mode : "print";
+    if (mode === "print" || mode === "both") {
+      setTimeout(() => printTicket(), 600);
+    }
+    // SMS — add gateway here when ready
+  }, [screen, tokenNumber]);
+
   const validatePhone = (p: string) => {
     if (p.length !== 10) { setPhoneErr("Please enter a valid 10-digit mobile number"); return false; }
     setPhoneErr(""); return true;
