@@ -52,12 +52,21 @@ export default function KioskPage() {
   // Auto print/SMS based on clinic config when token issued
   useEffect(() => {
     if (screen !== "token_issued" || !tokenInfo || !tokenNumber) return;
-    const cfg = localStorage.getItem("ticketConfig");
-    const mode = cfg ? JSON.parse(cfg).mode : "print";
-    if (mode === "print" || mode === "both") {
-      setTimeout(() => printTicket(), 600);
-    }
-    // SMS — add gateway here when ready
+    // ✅ Always fetch from DB — not localStorage
+    axios.get(`${API}/clinic/ticket-config`).then(r => {
+      const mode = r.data?.mode || "print";
+      if (mode === "print" || mode === "both") {
+        setTimeout(() => printTicket(), 600);
+      }
+      // SMS — gateway pending
+    }).catch(() => {
+      // fallback: check localStorage
+      const cfg = localStorage.getItem("ticketConfig");
+      const mode = cfg ? JSON.parse(cfg).mode : "print";
+      if (mode === "print" || mode === "both") {
+        setTimeout(() => printTicket(), 600);
+      }
+    });
   }, [screen, tokenNumber]);
 
   const validatePhone = (p: string) => {
