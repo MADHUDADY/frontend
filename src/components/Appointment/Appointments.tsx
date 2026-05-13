@@ -137,6 +137,16 @@ const AppointmentPage: React.FC = () => {
                       {t.TOKENDATE ? new Date(t.TOKENDATE).toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"}) : ""}
                     </p>
                     <span className="inline-block mt-2 px-2 py-0.5 bg-yellow-100 text-yellow-700 text-xs font-bold rounded-full">Waiting</span>
+                    <button
+                      onClick={async () => {
+                        try {
+                          await appointmentAPI.updateStatus(t.SLNO, { STATUSCALLDISPLAYALL: 1, STATUSSCREENDISPLAYALL: 1 });
+                          fetchAll();
+                        } catch { alert("Failed to call patient"); }
+                      }}
+                      className="mt-2 w-full py-1.5 bg-green-600 hover:bg-green-700 text-white text-xs font-bold rounded-lg transition">
+                      📢 Call Patient
+                    </button>
                   </div>
                 ))}
               </div>

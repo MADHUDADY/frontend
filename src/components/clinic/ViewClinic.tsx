@@ -221,10 +221,17 @@ const ViewClinic = () => {
             </div>
 
             <div className="flex justify-end">
-              <button onClick={() => {
-                localStorage.setItem("ticketConfig", JSON.stringify({ mode: ticketMode }));
-                setSaved(true);
-                setTimeout(() => setSaved(false), 3000);
+              <button onClick={async () => {
+                try {
+                  await fetch("https://backend-production-2df7.up.railway.app/api/clinic/ticket-config/save", {
+                    method: "PUT",
+                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${localStorage.getItem("token")}` },
+                    body: JSON.stringify({ mode: ticketMode }),
+                  });
+                  localStorage.setItem("ticketConfig", JSON.stringify({ mode: ticketMode }));
+                  setSaved(true);
+                  setTimeout(() => setSaved(false), 3000);
+                } catch { alert("Save failed"); }
               }}
                 className="px-6 py-2.5 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 text-sm font-semibold">
                 💾 Save Configuration

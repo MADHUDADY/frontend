@@ -30,6 +30,15 @@ export default function KioskPage() {
       setTimeout(() => phoneRef.current?.focus(), 100);
   }, [screen]);
 
+  // Fetch ticket config from DB
+  useEffect(() => {
+    axios.get(`${API}/clinic/ticket-config`).then(r => {
+      if (r.data?.mode) {
+        localStorage.setItem("ticketConfig", JSON.stringify({ mode: r.data.mode }));
+      }
+    }).catch(() => {});
+  }, []);
+
   useEffect(() => {
     axios.get(`${API}/clinic`).then(r => {
       if (r.data?.data) {
