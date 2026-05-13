@@ -1,10 +1,10 @@
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
-import Login        from "./components/login";
-import Dashboard    from "./Dashboard";
-import KioskPage    from "./pages/KioskPage";   // ← Public kiosk
+import Login          from "./components/login";
+import Dashboard      from "./Dashboard";
+import KioskPage      from "./pages/KioskPage";
+import QueueDisplay   from "./pages/QueueDisplay";
 import { AuthProvider } from "./context/AuthContext";
 
-// ── Any logged-in user ───────────────────────────────────────────────────────
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem("token");
   const role  = localStorage.getItem("role");
@@ -12,7 +12,6 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   return <>{children}</>;
 }
 
-// ── Admin only ────────────────────────────────────────────────────────────────
 function AdminRoute({ children }: { children: React.ReactNode }) {
   const token = localStorage.getItem("token");
   const role  = localStorage.getItem("role");
@@ -29,7 +28,8 @@ export default function App() {
 
           {/* ── Public — no login needed ── */}
           <Route path="/"      element={<Login />} />
-          <Route path="/kiosk" element={<KioskPage />} />  {/* ← Patient self check-in */}
+          <Route path="/kiosk" element={<KioskPage />} />
+          <Route path="/queue" element={<QueueDisplay />} />  {/* ← TV Queue Display */}
 
           {/* ── Any logged-in user ── */}
           <Route
