@@ -79,7 +79,14 @@ export default function KioskPage() {
   const [ticket,       setTicket]       = useState<TicketInfo | null>(null);
   const [busy,         setBusy]         = useState(false);
   const [clock,        setClock]        = useState(new Date());
-  const phoneRef = useRef<HTMLInputElement>(null);
+  const phoneRef  = useRef<HTMLInputElement>(null);
+  const deptScroll = useRef<HTMLDivElement>(null);
+
+  const scrollDepts = (dir: "left" | "right") => {
+    if (deptScroll.current) {
+      deptScroll.current.scrollBy({ left: dir === "right" ? 200 : -200, behavior: "smooth" });
+    }
+  };
 
   // Live clock
   useEffect(() => {
@@ -324,6 +331,10 @@ ${ticket.room?`<div class="c s">Room No. ${ticket.room}</div>`:""}
         .dept-pill.active{background:#0f2027;color:#fff;border-color:#0f2027;}
         .dept-pill:not(.active){background:#fff;color:#374151;border-color:#dde3ef;}
         .dept-pill:not(.active):hover{border-color:#1a4a8a;color:#1a4a8a;}
+        .dept-pills-wrap{display:flex;flex-wrap:nowrap;gap:8px;flex:1;overflow-x:auto;
+            scrollbar-width:none;-ms-overflow-style:none;padding-bottom:2px;cursor:grab;}
+        .dept-pills-wrap:active{cursor:grabbing;}
+        .dept-pills-wrap::-webkit-scrollbar{display:none;}
         @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
 
@@ -364,27 +375,42 @@ ${ticket.room?`<div class="c s">Room No. ${ticket.room}</div>`:""}
                 {departments.length > 0 && (
                   <div style={S.deptBar}>
                     <span style={S.deptLabel}>Department:</span>
-                    <div style={S.deptPills}>
-                      {/* All button */}
-                      <span
-                        className={`dept-pill${selDept === "all" ? " active" : ""}`}
-                        onClick={() => setSelDept("all")}
-                      >
-                        All ({allDoctors.length})
-                      </span>
-                      {departments.map(dept => {
-                        const count = allDoctors.filter(d => d.departmentid === dept.id).length;
-                        if (count === 0) return null;
-                        return (
-                          <span
-                            key={dept.id}
-                            className={`dept-pill${selDept === dept.id ? " active" : ""}`}
-                            onClick={() => setSelDept(dept.id)}
-                          >
-                            {dept.name} ({count})
-                          </span>
-                        );
-                      })}
+                    <div style={{ position:"relative", flex:1, minWidth:0 }}>
+                      {/* Left fade hint */}
+                      <div style={{
+                        position:"absolute", left:0, top:0, bottom:0, width:40,
+                        background:"linear-gradient(to left, transparent, #fff)",
+                        display:"flex", alignItems:"center", justifyContent:"flex-start",
+                        pointerEvents:"none", zIndex:1,
+                      }}>
+                        <span style={{ fontSize:20, color:"#1a4a8a", fontWeight:700, marginLeft:2, opacity:0.7 }}>‹</span>
+                      </div>
+                      {/* Scrollable pills */}
+                      <div ref={deptScroll} className="dept-pills-wrap" style={{ paddingLeft:20, paddingRight:20 }}>
+                        <span className={`dept-pill${selDept==="all"?" active":""}`} onClick={()=>setSelDept("all")}>
+                          All ({allDoctors.length})
+                        </span>
+                        {departments.map(dept => {
+                          const count = allDoctors.filter(d => d.departmentid === dept.id).length;
+                          if (!count) return null;
+                          return (
+                            <span key={dept.id}
+                              className={`dept-pill${selDept===dept.id?" active":""}`}
+                              onClick={()=>setSelDept(dept.id)}>
+                              {dept.name} ({count})
+                            </span>
+                          );
+                        })}
+                      </div>
+                      {/* Right fade hint */}
+                      <div style={{
+                        position:"absolute", right:0, top:0, bottom:0, width:40,
+                        background:"linear-gradient(to right, transparent, #fff)",
+                        display:"flex", alignItems:"center", justifyContent:"flex-end",
+                        pointerEvents:"none", zIndex:1,
+                      }}>
+                        <span style={{ fontSize:20, color:"#1a4a8a", fontWeight:700, marginRight:2, opacity:0.8 }}>›</span>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -637,29 +663,30 @@ const S: Record<string, React.CSSProperties> = {
   // Department filter bar
   deptBar: {
     display: "flex",
-    alignItems: "flex-start",
+    alignItems: "center",
     gap: 12,
     marginBottom: 20,
-    padding: "14px 18px",
+    padding: "12px 18px",
     background: "#fff",
     borderRadius: 14,
     boxShadow: "0 2px 10px rgba(15,32,60,0.06)",
     border: "1px solid #e8edf5",
-    flexWrap: "wrap",
   },
   deptLabel: {
     fontSize: 13,
     fontWeight: 700,
     color: "#6b7280",
-    marginTop: 6,
-    whiteSpace: "nowrap",
-    minWidth: 90,
+    whiteSpace: "nowrap" as const,
+    minWidth: 88,
   },
   deptPills: {
     display: "flex",
-    flexWrap: "wrap",
+    flexWrap: "nowrap" as const,
     gap: 8,
     flex: 1,
+    overflowX: "auto" as const,
+    scrollbarWidth: "none" as const,
+    paddingBottom: 2,
   },
   // Grid
   grid: {
