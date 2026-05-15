@@ -1,7 +1,8 @@
 // src/pages/KioskPage.tsx — PUBLIC KIOSK PAGE
 // No login required | Queue-Soft API for tokens | Our API for appointments
+// v2 — Department dropdown filter added (client requirement)
 
-import { useState, useEffect, useRef, useCallback } from "react";
+import { useState, useEffect, useRef, useCallback, useMemo } from "react";
 import axios from "axios";
 
 const QMS_API   = "https://api.keypadticket.queue-soft.com/api";
@@ -22,6 +23,11 @@ type Doctor = {
   docimage: string;
   walkincount: number;
   roomname: string;
+};
+
+type Department = {
+  id: string;
+  name: string;
 };
 
 type TicketInfo = {
@@ -47,15 +53,17 @@ type Appt = {
 };
 
 const TYPES = [
-  { key: "W", label: "Walk In",     bg: "#0f2027", hover: "#1a3a4a" },
-  { key: "A", label: "Appointment", bg: "#1a3a5c", hover: "#2a4a7c" },
-  { key: "R", label: "Report",      bg: "#1a2a4a", hover: "#2a3a6a" },
-  { key: "V", label: "VIP",         bg: "#3d1a6e", hover: "#4d2a7e" },
+  { key: "W", label: "Walk In",     bg: "#0f2027" },
+  { key: "A", label: "Appointment", bg: "#1a3a5c" },
+  { key: "R", label: "Report",      bg: "#1a2a4a" },
+  { key: "V", label: "VIP",         bg: "#3d1a6e" },
 ];
 
 export default function KioskPage() {
   const [screen,       setScreen]       = useState<Screen>("home");
-  const [doctors,      setDoctors]      = useState<Doctor[]>([]);
+  const [allDoctors,   setAllDoctors]   = useState<Doctor[]>([]);
+  const [departments,  setDepartments]  = useState<Department[]>([]);
+  const [selDept,      setSelDept]      = useState<string>("all");
   const [loading,      setLoading]      = useState(true);
   const [clinic,       setClinic]       = useState({
     name: "Paradise Medical Center",
@@ -91,26 +99,30 @@ export default function KioskPage() {
     }).catch(() => {});
   }, []);
 
-  // Load doctors
+  // Load doctors + departments
   useEffect(() => {
     setLoading(true);
-    axios.get(`${QMS_API}/ticket/doctordetailskiosk?clinicId=${CLINIC_ID}`)
-      .then(r => {
-        const docs: Doctor[] = (r.data || []).map((d: any) => ({
-          doctorid:     String(d.doctorid),
-          doctornamen:  d.doctornamen,
-          departmentid: String(d.departmentid),
-          departmenten: d.departmenten,
-          docimage:     d.docimage || "",
-          walkincount:  0,
-          roomname:     "",
-        }));
-        if (!docs.length) throw new Error("empty");
-        setDoctors(docs);
-      })
-      .catch(() =>
-        axios.get(`${QMS_API}/Service/servicelistbycenter?centerid=${CLINIC_ID}`)
-          .then(r => setDoctors((r.data || []).map((s: any) => ({
+    const loadDocs = async () => {
+      try {
+        // Try doctordetailskiosk first
+        let docs: Doctor[] = [];
+        try {
+          const r = await axios.get(`${QMS_API}/ticket/doctordetailskiosk?clinicId=${CLINIC_ID}`);
+          docs = (r.data || []).map((d: any) => ({
+            doctorid:     String(d.doctorid),
+            doctornamen:  d.doctornamen,
+            departmentid: String(d.departmentid),
+            departmenten: d.departmenten,
+            docimage:     d.docimage || "",
+            walkincount:  0,
+            roomname:     "",
+          }));
+        } catch {}
+
+        // Fallback to service list
+        if (!docs.length) {
+          const r2 = await axios.get(`${QMS_API}/Service/servicelistbycenter?centerid=${CLINIC_ID}`);
+          docs = (r2.data || []).map((s: any) => ({
             doctorid:     String(s.serviceid),
             doctornamen:  s.servicE_E,
             departmentid: String(s.categoryid),
@@ -118,18 +130,57 @@ export default function KioskPage() {
             docimage:     "",
             walkincount:  s.walkincount || 0,
             roomname:     s.roomname || "",
-          }))))
-          .catch(() => {})
-      )
-      .finally(() => setLoading(false));
+          }));
+        }
+
+        setAllDoctors(docs);
+
+        // Build departments from doctors
+        const deptMap = new Map<string, string>();
+        docs.forEach(d => {
+          if (d.departmentid && d.departmenten) {
+            deptMap.set(d.departmentid, d.departmenten);
+          }
+        });
+
+        // Also try to load categories from QMS API
+        try {
+          const cr = await axios.get(`${QMS_API}/Category/categorylistbycenter?centerid=${CLINIC_ID}`);
+          (cr.data || []).forEach((c: any) => {
+            deptMap.set(String(c.categoryid), c.categorye);
+          });
+        } catch {}
+
+        // Fallback: our API
+        if (deptMap.size === 0) {
+          try {
+            const cr2 = await axios.get(`${OUR_API}/categories/byclinic/101`);
+            (cr2.data?.data || []).forEach((c: any) => {
+              deptMap.set(String(c.CATEGORYID), c.CATEGORYE);
+            });
+          } catch {}
+        }
+
+        const depts: Department[] = Array.from(deptMap.entries()).map(([id, name]) => ({ id, name }));
+        setDepartments(depts.sort((a, b) => a.name.localeCompare(b.name)));
+      } catch {}
+      finally { setLoading(false); }
+    };
+    loadDocs();
   }, []);
 
-  // Auto focus on phone screens
+  // Filtered doctors based on selected department
+  const doctors = useMemo(() => {
+    if (selDept === "all") return allDoctors;
+    return allDoctors.filter(d => d.departmentid === selDept);
+  }, [allDoctors, selDept]);
+
+  // Auto focus phone input
   useEffect(() => {
     if (screen === "appt_phone") setTimeout(() => phoneRef.current?.focus(), 100);
   }, [screen]);
 
-  // Auto reset 45s after ticket issued
+  // Auto reset after 45s on ticket screen
   useEffect(() => {
     if (screen !== "ticket") return;
     const t = setTimeout(reset, 45000);
@@ -171,8 +222,8 @@ export default function KioskPage() {
         doctorName:  doc.doctornamen,
         department:  doc.departmenten,
         room:        doc.roomname,
-        date: now.toLocaleDateString("en-GB",  { day:"2-digit", month:"2-digit", year:"2-digit" }),
-        time: now.toLocaleTimeString("en-GB",  { hour:"2-digit", minute:"2-digit", second:"2-digit" }),
+        date: now.toLocaleDateString("en-GB", { day:"2-digit", month:"2-digit", year:"2-digit" }),
+        time: now.toLocaleTimeString("en-GB", { hour:"2-digit", minute:"2-digit", second:"2-digit" }),
         waiting: Math.floor(Math.random() * 8),
       });
       setScreen("ticket");
@@ -239,6 +290,7 @@ ${ticket.room?`<div class="c s">Room No. ${ticket.room}</div>`:""}
     return `${d.toLocaleDateString("en-GB")} · ${d.toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})}`;
   };
 
+  // ── RENDER ─────────────────────────────────────────────────────────────────
   return (
     <div style={S.root}>
       <style>{`
@@ -249,8 +301,7 @@ ${ticket.room?`<div class="c s">Room No. ${ticket.room}</div>`:""}
         .kb:active{transform:scale(0.98);filter:brightness(0.95);}
         .kb:disabled{opacity:0.45;cursor:not-allowed;transform:none;filter:none;}
         .dc{background:#fff;border-radius:20px;padding:22px 16px 16px;display:flex;flex-direction:column;
-            align-items:center;box-shadow:0 2px 16px rgba(15,32,60,0.07);border:1px solid #e8edf5;
-            transition:all 0.22s ease;}
+            align-items:center;box-shadow:0 2px 16px rgba(15,32,60,0.07);border:1px solid #e8edf5;transition:all 0.22s ease;}
         .dc:hover{box-shadow:0 8px 36px rgba(15,32,60,0.14);transform:translateY(-3px);}
         .fa{animation:fadeUp 0.32s ease both;}
         @keyframes fadeUp{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
@@ -262,6 +313,17 @@ ${ticket.room?`<div class="c s">Room No. ${ticket.room}</div>`:""}
         .ar{background:#fff;border:1.5px solid #e8edf5;border-radius:14px;padding:15px 18px;
             display:flex;align-items:center;gap:14px;cursor:pointer;transition:all 0.18s;}
         .ar:hover{border-color:#1a4a8a;box-shadow:0 4px 18px rgba(26,74,138,0.1);}
+        .dept-select{appearance:none;-webkit-appearance:none;border:2px solid #dde3ef;
+            border-radius:12px;padding:10px 40px 10px 16px;font-size:15px;font-weight:600;
+            font-family:'DM Sans',sans-serif;color:#0f2027;background:#fff;cursor:pointer;
+            outline:none;transition:all 0.2s;min-width:220px;}
+        .dept-select:focus{border-color:#1a4a8a;box-shadow:0 0 0 3px rgba(26,74,138,0.1);}
+        .dept-pill{display:inline-flex;align-items:center;padding:7px 16px;border-radius:50px;
+            font-size:13px;font-weight:600;cursor:pointer;border:2px solid transparent;transition:all 0.18s;
+            white-space:nowrap;}
+        .dept-pill.active{background:#0f2027;color:#fff;border-color:#0f2027;}
+        .dept-pill:not(.active){background:#fff;color:#374151;border-color:#dde3ef;}
+        .dept-pill:not(.active):hover{border-color:#1a4a8a;color:#1a4a8a;}
         @keyframes spin{to{transform:rotate(360deg)}}
       `}</style>
 
@@ -297,34 +359,78 @@ ${ticket.room?`<div class="c s">Room No. ${ticket.room}</div>`:""}
                 <p style={{ color:"#6b7280", marginTop:16, fontFamily:"'DM Sans',sans-serif" }}>Loading...</p>
               </div>
             ) : (
-              <div style={S.grid}>
-                {doctors.map((doc, i) => (
-                  <div key={doc.doctorid} className="dc" style={{ animationDelay:`${i*0.04}s` }}>
-                    <div style={S.av}>
-                      {doc.docimage ? (
-                        <img src={`data:image/jpeg;base64,${doc.docimage}`} style={S.avImg} alt={doc.doctornamen}/>
-                      ) : (
-                        <DoctorSVG />
-                      )}
-                    </div>
-                    <div style={S.dname}>{doc.doctornamen}</div>
-                    {doc.departmenten && <div style={S.ddept}>{doc.departmenten}</div>}
-                    <div style={S.dstats}>
-                      <span>Waiting: <b>{doc.walkincount}</b></span>
-                      {doc.roomname && <span>Room: <b>{doc.roomname}</b></span>}
-                    </div>
-                    <div style={S.dbg}>
-                      {TYPES.map(tp => (
-                        <button key={tp.key} className="kb"
-                          onClick={() => handleSelect(doc, tp.key)}
-                          style={{ ...S.tbtn, background: tp.bg }}>
-                          {tp.label}
-                        </button>
-                      ))}
+              <>
+                {/* ── Department Filter ── */}
+                {departments.length > 0 && (
+                  <div style={S.deptBar}>
+                    <span style={S.deptLabel}>Department:</span>
+                    <div style={S.deptPills}>
+                      {/* All button */}
+                      <span
+                        className={`dept-pill${selDept === "all" ? " active" : ""}`}
+                        onClick={() => setSelDept("all")}
+                      >
+                        All ({allDoctors.length})
+                      </span>
+                      {departments.map(dept => {
+                        const count = allDoctors.filter(d => d.departmentid === dept.id).length;
+                        if (count === 0) return null;
+                        return (
+                          <span
+                            key={dept.id}
+                            className={`dept-pill${selDept === dept.id ? " active" : ""}`}
+                            onClick={() => setSelDept(dept.id)}
+                          >
+                            {dept.name} ({count})
+                          </span>
+                        );
+                      })}
                     </div>
                   </div>
-                ))}
-              </div>
+                )}
+
+                {/* ── Doctor Grid ── */}
+                {doctors.length === 0 ? (
+                  <div style={S.lw}>
+                    <p style={{ fontSize:48, margin:"0 0 12px" }}>🔍</p>
+                    <p style={{ color:"#6b7280", fontFamily:"'DM Sans',sans-serif", fontWeight:600 }}>
+                      No doctors in this department
+                    </p>
+                    <button className="kb" onClick={() => setSelDept("all")} style={{ ...S.bpri, marginTop:16, padding:"10px 24px", flex:"none" }}>
+                      Show All Doctors
+                    </button>
+                  </div>
+                ) : (
+                  <div style={S.grid}>
+                    {doctors.map((doc, i) => (
+                      <div key={doc.doctorid} className="dc" style={{ animationDelay:`${i*0.04}s` }}>
+                        <div style={S.av}>
+                          {doc.docimage ? (
+                            <img src={`data:image/jpeg;base64,${doc.docimage}`} style={S.avImg} alt={doc.doctornamen}/>
+                          ) : (
+                            <DoctorSVG />
+                          )}
+                        </div>
+                        <div style={S.dname}>{doc.doctornamen}</div>
+                        {doc.departmenten && <div style={S.ddept}>{doc.departmenten}</div>}
+                        <div style={S.dstats}>
+                          <span>Waiting: <b>{doc.walkincount}</b></span>
+                          {doc.roomname && <span>Room: <b>{doc.roomname}</b></span>}
+                        </div>
+                        <div style={S.dbg}>
+                          {TYPES.map(tp => (
+                            <button key={tp.key} className="kb"
+                              onClick={() => handleSelect(doc, tp.key)}
+                              style={{ ...S.tbtn, background: tp.bg }}>
+                              {tp.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -337,10 +443,10 @@ ${ticket.room?`<div class="c s">Room No. ${ticket.room}</div>`:""}
             <div style={S.ib}>
               <IR label="Doctor"     value={selDoctor.doctornamen} />
               {selDoctor.departmenten && <IR label="Department" value={selDoctor.departmenten} />}
-              {selDoctor.roomname     && <IR label="Room"        value={selDoctor.roomname} />}
-              <IR label="Type"   value={TYPES.find(t=>t.key===selType)?.label||""} />
-              <IR label="Date"   value={new Date().toLocaleDateString("en-GB")} />
-              <IR label="Time"   value={new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})} />
+              {selDoctor.roomname     && <IR label="Room"       value={selDoctor.roomname} />}
+              <IR label="Type" value={TYPES.find(t=>t.key===selType)?.label||""} />
+              <IR label="Date" value={new Date().toLocaleDateString("en-GB")} />
+              <IR label="Time" value={new Date().toLocaleTimeString("en-GB",{hour:"2-digit",minute:"2-digit"})} />
             </div>
             <div style={S.rbtn}>
               <button className="kb" onClick={reset} style={S.bback}>← Back</button>
@@ -387,7 +493,7 @@ ${ticket.room?`<div class="c s">Room No. ${ticket.room}</div>`:""}
               <div style={{textAlign:"center",padding:"20px 0 8px"}}>
                 <p style={{fontWeight:700,color:"#374151",marginBottom:6}}>No appointments found</p>
                 <p style={{color:"#9ca3af",fontSize:13,marginBottom:20}}>Try walk-in instead</p>
-                <button className="kb" style={{...S.bpri,padding:"12px 28px"}}
+                <button className="kb" style={{...S.bpri,padding:"12px 28px",flex:"none"}}
                   onClick={()=>{setSelType("W");setScreen("walkin_confirm");}}>
                   Walk-in Instead
                 </button>
@@ -440,7 +546,7 @@ ${ticket.room?`<div class="c s">Room No. ${ticket.room}</div>`:""}
           </div>
         )}
 
-        {/* TICKET */}
+        {/* TICKET ISSUED */}
         {screen === "ticket" && ticket && (
           <div className="fa" style={{...S.card,maxWidth:400}}>
             <div style={S.slip}>
@@ -518,7 +624,7 @@ const S: Record<string, React.CSSProperties> = {
     gap: 20,
     borderBottom: "1px solid rgba(255,255,255,0.08)",
   },
-  barL: { flex: 1 },
+  barL:      { flex: 1 },
   barClinic: { fontWeight: 700, fontSize: 17, letterSpacing: 0.3 },
   barAddr:   { fontSize: 12, opacity: 0.55, marginTop: 2 },
   barC:      { textAlign: "center", flex: 1 },
@@ -527,7 +633,34 @@ const S: Record<string, React.CSSProperties> = {
   barR:      { flex: 1, textAlign: "right" },
   barMsg:    { fontSize: 14, fontWeight: 500, opacity: 0.85 },
   barTag:    { fontSize: 11, opacity: 0.45, marginTop: 2, fontStyle: "italic" },
-  main:      { flex: 1, padding: "28px 20px", display: "flex", justifyContent: "center" },
+  main:      { flex: 1, padding: "24px 20px", display: "flex", justifyContent: "center" },
+  // Department filter bar
+  deptBar: {
+    display: "flex",
+    alignItems: "flex-start",
+    gap: 12,
+    marginBottom: 20,
+    padding: "14px 18px",
+    background: "#fff",
+    borderRadius: 14,
+    boxShadow: "0 2px 10px rgba(15,32,60,0.06)",
+    border: "1px solid #e8edf5",
+    flexWrap: "wrap",
+  },
+  deptLabel: {
+    fontSize: 13,
+    fontWeight: 700,
+    color: "#6b7280",
+    marginTop: 6,
+    whiteSpace: "nowrap",
+    minWidth: 90,
+  },
+  deptPills: {
+    display: "flex",
+    flexWrap: "wrap",
+    gap: 8,
+    flex: 1,
+  },
   // Grid
   grid: {
     display: "grid",
@@ -550,12 +683,8 @@ const S: Record<string, React.CSSProperties> = {
     background: "#f5f7fc", borderRadius: 8, padding: "5px 12px", marginBottom: 14,
   },
   dbg:   { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 7, width: "100%" },
-  tbtn:  {
-    border: "none", borderRadius: 9, padding: "9px 4px",
-    fontWeight: 700, fontSize: 12, cursor: "pointer", color: "#fff",
-    letterSpacing: 0.2,
-  },
-  // Card
+  tbtn:  { border: "none", borderRadius: 9, padding: "9px 4px", fontWeight: 700, fontSize: 12, cursor: "pointer", color: "#fff" },
+  // Card screens
   card: {
     background: "#fff", borderRadius: 24,
     padding: "36px 40px", maxWidth: 480, width: "100%",
@@ -576,7 +705,7 @@ const S: Record<string, React.CSSProperties> = {
   bpri:   { flex: 2, background: "linear-gradient(135deg,#1a4a8a,#0f2c60)", color: "#fff", border: "none", borderRadius: 12, padding: "13px 0", fontWeight: 700, fontSize: 14 },
   bprint: { flex: 1, background: "#0f2027", color: "#fff", border: "none", borderRadius: 12, padding: "13px 0", fontWeight: 700, fontSize: 14 },
   errtxt: { color: "#e53935", fontSize: 13, marginTop: 8, textAlign: "center" },
-  // Slip
+  // Ticket slip
   slip: {
     border: "2px dashed #c0c8d8", borderRadius: 10,
     padding: "14px 22px", width: "100%", background: "#fff",
@@ -588,7 +717,7 @@ const S: Record<string, React.CSSProperties> = {
   sb:      { textAlign: "center", fontWeight: 700, fontSize: 13, margin: "3px 0", color: "#0f2027" },
   ss:      { textAlign: "center", fontSize: 11, color: "#555", margin: "2px 0" },
   sclinic: { textAlign: "center", fontWeight: 900, fontSize: 14, margin: "3px 0", color: "#0f2027" },
-  lw:      { display: "flex", flexDirection: "column", alignItems: "center", padding: "80px 0", width: "100%" },
+  lw:      { display: "flex", flexDirection: "column", alignItems: "center", padding: "60px 0", width: "100%" },
   spin: {
     width: 44, height: 44,
     border: "4px solid #dde3ef", borderTop: "4px solid #1a4a8a",
