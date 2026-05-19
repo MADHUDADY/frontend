@@ -305,37 +305,156 @@ export default function KioskPage() {
 
   const printTicket = () => {
     if (!ticket) return;
-    const w = window.open("", "_blank", "width=300,height=520");
+    const w = window.open("", "_blank", "width=320,height=600");
     if (!w) return;
     w.document.write(`<!DOCTYPE html><html><head><title>Token</title>
 <style>
-  @media print{@page{margin:3mm;size:80mm auto;}}
-  *{margin:0;padding:0;box-sizing:border-box;}
-  body{font-family:'Courier New',monospace;width:270px;margin:0 auto;padding:8px;}
-  .d{border-top:1.5px dashed #333;margin:7px 0;}
-  .c{text-align:center;}
-  .type{font-size:14px;font-weight:900;letter-spacing:3px;text-transform:uppercase;}
-  .tok{font-size:60px;font-weight:900;letter-spacing:4px;line-height:1;margin:8px 0;}
-  .b{font-size:13px;font-weight:700;margin:3px 0;}
-  .s{font-size:11px;color:#555;margin:2px 0;}
+  /* ── 80mm thermal printer ── */
+  @media print {
+    @page {
+      size: 80mm auto;
+      margin: 4mm;
+    }
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body {
+    font-family: 'Arial', sans-serif;
+    width: 72mm;
+    margin: 0 auto;
+    padding: 4mm 2mm;
+    font-size: 12px;
+    color: #000;
+  }
+  /* Header */
+  .header {
+    text-align: center;
+    border-bottom: 2px solid #000;
+    padding-bottom: 6px;
+    margin-bottom: 6px;
+  }
+  .clinic-name {
+    font-size: 15px;
+    font-weight: 900;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+  .tagline {
+    font-size: 10px;
+    font-style: italic;
+    color: #333;
+    margin-top: 2px;
+  }
+  /* Divider */
+  .d { border-top: 1px dashed #555; margin: 5px 0; }
+  /* Center */
+  .c { text-align: center; }
+  /* Department */
+  .dept {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 700;
+    margin: 4px 0;
+  }
+  /* Token number — BIG */
+  .tok {
+    text-align: center;
+    font-size: 58px;
+    font-weight: 900;
+    letter-spacing: 3px;
+    line-height: 1.1;
+    margin: 6px 0;
+  }
+  /* Doctor / Patient */
+  .doc {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    margin: 3px 0;
+  }
+  /* Room */
+  .room {
+    text-align: center;
+    font-size: 11px;
+    font-weight: 600;
+    margin: 2px 0;
+  }
+  /* Date/time, waiting */
+  .info {
+    text-align: center;
+    font-size: 11px;
+    margin: 2px 0;
+  }
+  .waiting {
+    text-align: center;
+    font-size: 12px;
+    font-weight: 700;
+    margin: 3px 0;
+  }
+  /* Footer */
+  .footer {
+    text-align: center;
+    border-top: 2px solid #000;
+    padding-top: 5px;
+    margin-top: 5px;
+  }
+  .footer-clinic {
+    font-size: 12px;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+  .footer-addr {
+    font-size: 10px;
+    color: #333;
+    margin: 2px 0;
+  }
+  .thanks {
+    font-size: 11px;
+    font-weight: 700;
+    margin-top: 5px;
+  }
 </style></head><body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="clinic-name">${clinic.name}</div>
+  <div class="tagline">${clinic.tagline}</div>
+</div>
+
 <div class="d"></div>
-<div class="c type">${ticket.typeLabel}</div>
+
+<!-- DEPARTMENT -->
+${ticket.department ? `<div class="dept">${ticket.department}</div>` : `<div class="dept">${ticket.typeLabel}</div>`}
+
 <div class="d"></div>
-<div class="c tok">${ticket.number}</div>
-${ticket.department ? `<div class="c b">${ticket.department}</div>` : ""}
-${ticket.doctorName ? `<div class="c b">Doctor: ${ticket.doctorName}</div>` : ""}
-${ticket.room       ? `<div class="c s">Room No. ${ticket.room}</div>` : ""}
+
+<!-- TOKEN NUMBER -->
+<div class="tok">${ticket.number}</div>
+
 <div class="d"></div>
-<div class="c s">${ticket.date} &nbsp; ${ticket.time}</div>
-<div class="c b">Patient Waiting: ${ticket.waiting}</div>
+
+<!-- DOCTOR -->
+${ticket.doctorName ? `<div class="doc">${ticket.doctorName}</div>` : ""}
+
+<!-- ROOM -->
+${ticket.room ? `<div class="room">Serving in Room No.${ticket.room}</div>` : ""}
+
+<!-- DATE TIME -->
+<div class="info">${ticket.date} &nbsp; ${ticket.time}</div>
+
+<!-- WAITING -->
+<div class="waiting">Patient Waiting: ${ticket.waiting}</div>
+
 <div class="d"></div>
-<div class="c" style="font-size:22px;margin:4px 0">🏥</div>
-<div class="c b" style="font-size:14px">${clinic.name}</div>
-<div class="c s">${clinic.address}</div>
-<div class="c s">${clinic.tagline}</div>
-<div class="d"></div>
-<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),600);}<\/script>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-clinic">${clinic.name}</div>
+  <div class="footer-addr">${clinic.address}</div>
+  <div class="thanks">Thanks You For Visit</div>
+</div>
+
+<script>window.onload=()=>{window.print();setTimeout(()=>window.close(),800);}<\/script>
 </body></html>`);
     w.document.close();
   };
